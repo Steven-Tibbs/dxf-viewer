@@ -1,0 +1,12 @@
+# Local test drawings and exports
+*.dxf
+*.dwg
+*.pdf
+_test*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

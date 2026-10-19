@@ -1,0 +1,1642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>DXF Viewer</title>
+<style>
+:root{
+  --bg:#f5f5f7;--panel:#fff;--panel2:#f5f5f7;--text:#1d1d1f;--muted:#6e6e73;--line:#d2d2d7;--hover:rgba(0,0,0,.05);
+  --accent:#0071e3;--sel:rgba(0,113,227,.12);--shadow:0 10px 34px rgba(0,0,0,.14);color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#000;--panel:#000;--panel2:#16181c;--text:#e7e9ea;--muted:#71767b;--line:#2f3336;--hover:rgba(255,255,255,.06);
+  --accent:#1d9bf0;--sel:rgba(29,155,240,.16);--shadow:0 10px 34px rgba(0,0,0,.7);color-scheme:dark}}
+:root[data-theme=dark]{--bg:#000;--panel:#000;--panel2:#16181c;--text:#e7e9ea;--muted:#71767b;--line:#2f3336;--hover:rgba(255,255,255,.06);
+  --accent:#1d9bf0;--sel:rgba(29,155,240,.16);--shadow:0 10px 34px rgba(0,0,0,.7);color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;display:grid;grid-template:52px 1fr 30px/290px 1fr;grid-template-areas:"top top" "side stage" "status status";overflow:hidden}
+body.noside{grid-template-columns:0 1fr}body.noside aside{display:none}
+button,input,select{font:inherit;color:inherit}
+header{grid-area:top;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);min-width:0}
+.brand{font-weight:600;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);cursor:pointer;white-space:nowrap;font-weight:500}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default;filter:none}
+.btn.lg{height:40px;padding:0 20px;font-size:14px}
+.icon{width:32px;height:32px;display:inline-grid;place-items:center;border-radius:999px;border:0;background:transparent;cursor:pointer;flex:none}
+.icon:hover{background:var(--hover)}.icon.on{background:var(--sel);color:var(--accent)}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tools{display:flex;gap:2px;padding:0 6px;margin:0 2px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+aside{grid-area:side;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;min-width:0}
+.sec{display:flex;flex-direction:column;min-height:0}
+.sec.files{flex:0 1 auto;max-height:45%;border-bottom:1px solid var(--line)}
+.sec.layers{flex:1 1 auto}
+.sec-h{display:flex;align-items:center;gap:6px;padding:12px 14px 8px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.count{font-weight:500;letter-spacing:0}
+.link{border:0;background:none;color:var(--accent);cursor:pointer;font-size:12px;font-weight:500;padding:2px 4px;text-transform:none;letter-spacing:0}
+.list{overflow:auto;min-height:0;padding:0 6px 8px}
+.empty-note{color:var(--muted);padding:6px 10px 12px;font-size:12px}
+.file{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;cursor:pointer}
+.file:hover{background:var(--hover)}.file.active{background:var(--sel)}
+.file input{flex:none;accent-color:var(--accent);width:15px;height:15px;margin:0}
+.fmain{flex:1;min-width:0}
+.fname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.fmeta{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.facts{display:flex;opacity:0;transition:opacity .12s}
+.file:hover .facts,.file.active .facts{opacity:1}
+.mini{width:24px;height:24px;border:0;border-radius:999px;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+.mini:hover{background:var(--hover);color:var(--text)}
+.mini svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.search{margin:0 12px 8px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);padding:0 10px;outline:none}
+.search:focus{border-color:var(--accent)}
+.layer{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;cursor:pointer;user-select:none}
+.layer:hover{background:var(--hover)}
+.layer input{flex:none;accent-color:var(--accent);margin:0;width:15px;height:15px}
+.sw{flex:none;width:12px;height:12px;border-radius:3px;border:1px solid rgba(128,128,128,.45)}
+.lname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layer.off .lname{color:var(--muted)}
+.lcount{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.lacts{display:none;gap:0}.layer:hover .lacts{display:flex}.layer:hover .lcount{display:none}
+.chip{border:0;background:transparent;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;padding:3px 6px;border-radius:6px}
+.chip:hover{background:var(--hover)}
+main{grid-area:stage;position:relative;overflow:hidden;min-width:0;background:#000}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+canvas.dragging{cursor:grabbing}canvas.measure{cursor:crosshair}
+.tabs{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);max-width:calc(100% - 24px);overflow:auto}
+.tab{height:26px;padding:0 12px;border:0;border-radius:999px;background:transparent;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap}
+.tab:hover{background:var(--hover)}.tab.on{background:var(--accent);color:#fff}
+.card{position:absolute;right:12px;top:12px;width:270px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px;font-size:12px}
+.card h3{margin:0 0 8px;font-size:13px;display:flex;align-items:center;gap:6px}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0}
+.card dt{color:var(--muted)}.card dd{margin:0;word-break:break-word;font-variant-numeric:tabular-nums}
+.card .row{display:flex;gap:6px;margin-top:10px}.card .btn{height:28px;padding:0 10px;font-size:12px}
+.card .x{margin-left:auto}
+.mbox{right:auto;left:12px;width:250px}
+.empty{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg);padding:16px}
+.drop{max-width:520px;width:100%;text-align:center;border:1.5px dashed var(--line);border-radius:22px;padding:48px 28px;background:var(--panel)}
+.drop h1{font-size:30px;letter-spacing:-.02em;margin:0 0 8px;line-height:1.1}
+.drop p{color:var(--muted);margin:0 0 22px;font-size:14px}
+.drop .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.drophint{position:absolute;inset:10px;border:2px dashed var(--accent);border-radius:18px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 10%,transparent);font-size:16px;font-weight:600;color:var(--accent);pointer-events:none;z-index:5}
+.busy{position:absolute;left:50%;top:16px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:999px;padding:8px 16px;display:flex;gap:10px;align-items:center;z-index:6;font-weight:500}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{grid-area:status;display:flex;align-items:center;gap:14px;padding:0 12px;border-top:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:500;z-index:50;box-shadow:var(--shadow);max-width:calc(100vw - 32px);text-align:center}
+dialog{border:1px solid var(--line);border-radius:20px;background:var(--panel);color:var(--text);padding:0;width:min(580px,calc(100vw - 24px));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+dialog form{padding:20px 22px;max-height:calc(100vh - 40px);overflow:auto}
+dialog h2{margin:0 0 4px;font-size:20px;letter-spacing:-.01em}
+.muted{color:var(--muted)}.small{font-size:12px}
+.pdffiles{margin:14px 0;border:1px solid var(--line);border-radius:12px;max-height:170px;overflow:auto;padding:4px}
+.pdffiles label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;color:var(--text);font-size:13px;flex-direction:row}
+.pdffiles label:hover{background:var(--hover)}
+.pdffiles span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdffiles em{font-style:normal;color:var(--muted);font-size:11px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid2 label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.grid2 select,.grid2 input{height:34px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);padding:0 10px;outline:none;min-width:0}
+.check{display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer}
+.check input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.actions{display:flex;gap:8px;margin-top:18px;align-items:center}
+@media (max-width:760px){
+  body,body.noside{grid-template-columns:0 1fr}
+  aside{display:flex!important;position:fixed;top:52px;bottom:30px;left:0;width:min(86vw,320px);z-index:20;transform:translateX(-102%);visibility:hidden;transition:transform .18s,visibility .18s}
+  body.side aside{transform:none;visibility:visible;box-shadow:var(--shadow)}
+  .brand,.hide-sm{display:none}
+  .grid2{grid-template-columns:1fr}
+  #stats{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <button class="icon" id="sideBtn" title="Toggle sidebar"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button>
+  <div class="brand">DXF Viewer</div>
+  <div class="spacer"></div>
+  <button class="btn" id="openBtn" title="Open DXF files"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="hide-sm">Add DXF</span></button>
+  <div class="tools">
+    <button class="icon" id="fitBtn" title="Zoom to fit (F)"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></svg></button>
+    <button class="icon hide-sm" id="zinBtn" title="Zoom in (+)"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M11 8v6M8 11h6"/></svg></button>
+    <button class="icon hide-sm" id="zoutBtn" title="Zoom out (−)"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M8 11h6"/></svg></button>
+    <button class="icon" id="measureBtn" title="Measure distance (M)"><svg class="i" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg></button>
+    <button class="icon" id="lwBtn" title="Show lineweights (W)"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16" stroke-width="1"/><path d="M4 12h16" stroke-width="2.2"/><path d="M4 18h16" stroke-width="3.6"/></svg></button>
+    <button class="icon" id="bgBtn" title="Canvas background (B)"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+  </div>
+  <button class="btn primary" id="pdfBtn" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Export PDF</button>
+</header>
+
+<aside id="side">
+  <div class="sec files">
+    <div class="sec-h"><span>Drawings</span><span class="count" id="fileCount"></span></div>
+    <div class="list" id="fileList"></div>
+  </div>
+  <div class="sec layers">
+    <div class="sec-h"><span>Layers</span><span class="count" id="layerCount"></span><span class="spacer"></span>
+      <button class="link" id="allOn">All on</button><button class="link" id="allOff">All off</button></div>
+    <input class="search" id="layerSearch" type="search" placeholder="Filter layers">
+    <div class="list" id="layerList"></div>
+  </div>
+</aside>
+
+<main id="stage">
+  <canvas id="cv"></canvas>
+  <div class="tabs" id="tabs" hidden></div>
+  <div class="card" id="info" hidden></div>
+  <div class="card mbox" id="mbox" hidden></div>
+  <div class="busy" id="busy" hidden><div class="spin"></div><span></span></div>
+  <div class="empty" id="empty">
+    <div class="drop">
+      <h1>Open DXF drawings</h1>
+      <p>Drop files anywhere or pick several at once. Pan, zoom, toggle layers, measure, then export everything into one PDF. Files never leave your computer.</p>
+      <div class="row">
+        <button class="btn primary lg" id="openBtn2">Choose DXF files</button>
+        <button class="btn lg" id="sampleBtn">Try two samples</button>
+      </div>
+    </div>
+  </div>
+  <div class="drophint" id="dropHint" hidden>Drop DXF files to add them</div>
+</main>
+
+<footer>
+  <span id="coords">x —  y —</span><span id="units"></span><span id="zoom"></span><span class="spacer"></span><span id="stats"></span>
+</footer>
+
+<dialog id="pdfDlg">
+  <form method="dialog" id="pdfForm">
+    <h2>Export combined PDF</h2>
+    <div class="muted small" id="pdfSummary"></div>
+    <div class="pdffiles" id="pdfFiles"></div>
+    <div class="grid2">
+      <label>Paper size<select name="paper">
+        <option value="letter">Letter 8.5 × 11 in</option><option value="legal">Legal 8.5 × 14 in</option><option value="tabloid">Tabloid 11 × 17 in</option>
+        <option value="archC">ARCH C 18 × 24 in</option><option value="archD">ARCH D 24 × 36 in</option><option value="archE">ARCH E 36 × 48 in</option>
+        <option value="a4">A4</option><option value="a3">A3</option><option value="a2">A2</option><option value="a1">A1</option><option value="a0">A0</option>
+      </select></label>
+      <label>Orientation<select name="orient"><option value="auto">Auto (match drawing)</option><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></label>
+      <label>Scale<select name="scale">
+        <option value="fit">Fit to page</option>
+        <option value="1">1:1</option><option value="2">1:2</option><option value="5">1:5</option><option value="10">1:10</option><option value="20">1:20</option>
+        <option value="25">1:25</option><option value="50">1:50</option><option value="100">1:100</option><option value="200">1:200</option><option value="500">1:500</option><option value="1000">1:1000</option>
+        <option value="192">1/16" = 1'-0"</option><option value="96">1/8" = 1'-0"</option><option value="64">3/16" = 1'-0"</option><option value="48">1/4" = 1'-0"</option>
+        <option value="24">1/2" = 1'-0"</option><option value="12">1" = 1'-0"</option><option value="120">1" = 10'</option><option value="240">1" = 20'</option><option value="600">1" = 50'</option>
+      </select></label>
+      <label>Area<select name="area"><option value="extents">Whole drawing (visible layers)</option><option value="view">What's on screen for each drawing</option></select></label>
+      <label>Pages per drawing<select name="pages"><option value="current">Current tab (Model or layout)</option><option value="all">Model + every layout</option><option value="layouts">Layouts only (Model if none)</option></select></label>
+      <label>Color<select name="color"><option value="mono">Black &amp; white</option><option value="gray">Grayscale</option><option value="color">Color</option></select></label>
+      <label>Line weight<select name="lw"><option value="dxf">From drawing</option><option value="fine">Fine (0.1 mm)</option><option value="bold">Bold (0.35 mm)</option></select></label>
+      <label>Margin (mm)<input name="margin" type="number" min="0" max="60" step="1" value="10"></label>
+      <label>Unitless drawings are in<select name="unitless"><option value="mm">Millimetres</option><option value="in">Inches</option></select></label>
+    </div>
+    <label class="check"><input type="checkbox" name="footer" checked> Footer with file name and page number</label>
+    <p class="muted small" style="margin:10px 0 0">Hidden layers stay hidden in the PDF. Page order follows the Drawings list (use the arrows to reorder).</p>
+    <div class="actions">
+      <button class="btn" value="cancel" formnovalidate>Cancel</button><span class="spacer"></span>
+      <button class="btn" value="open" id="pdfOpen">Open preview</button>
+      <button class="btn primary" value="download" id="pdfGo">Download PDF</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="fileInput" accept=".dxf,.DXF" multiple hidden>
+
+<script>
+'use strict';
+/* ============================== math & constants ============================== */
+const DEG = Math.PI / 180, TAU = Math.PI * 2, CAP = 0.716, DESC = 0.212, MM = 72 / 25.4;
+const I6 = [1, 0, 0, 1, 0, 0];
+const mul = (A, B) => [A[0]*B[0] + A[2]*B[1], A[1]*B[0] + A[3]*B[1], A[0]*B[2] + A[2]*B[3], A[1]*B[2] + A[3]*B[3],
+  A[0]*B[4] + A[2]*B[5] + A[4], A[1]*B[4] + A[3]*B[5] + A[5]];
+const tr = (x, y) => [1, 0, 0, 1, x, y];
+const rot = a => { const c = Math.cos(a), s = Math.sin(a); return [c, s, -s, c, 0, 0]; };
+const scl = (x, y) => [x, 0, 0, y, 0, 0];
+const ap = (M, x, y) => [M[0]*x + M[2]*y + M[4], M[1]*x + M[3]*y + M[5]];
+const hit = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+const grow = (bb, x0, y0, x1, y1) => { if (x0 < bb[0]) bb[0] = x0; if (y0 < bb[1]) bb[1] = y0; if (x1 > bb[2]) bb[2] = x1; if (y1 > bb[3]) bb[3] = y1; };
+const sweep = a => { while (a <= 1e-12) a += TAU; while (a > TAU + 1e-9) a -= TAU; return a; };
+const UNITS = ['', 'in', 'ft', 'mi', 'mm', 'cm', 'm', 'km', 'µin', 'mil', 'yd', 'Å', 'nm', 'µm', 'dm', 'dam', 'hm', 'Gm', 'AU', 'ly', 'pc'];
+const UNIT_MM = [0, 25.4, 304.8, 1609344, 1, 10, 1000, 1e6, 2.54e-5, 0.0254, 914.4, 1e-7, 1e-6, 1e-3, 100, 1e4, 1e5, 1e12, 1.496e14, 9.461e18, 3.086e19];
+
+/* AutoCAD Color Index palette */
+const ACI = (() => {
+  const hsv = (h, s, v) => { const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+    return (Math.round(f(5) * 255) << 16) | (Math.round(f(3) * 255) << 8) | Math.round(f(1) * 255); };
+  const t = [0, 0xff0000, 0xffff00, 0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff, 0xffffff, 0x808080, 0xc0c0c0];
+  const vs = [1, .8, .6, .5, .3];
+  for (let i = 10; i < 250; i++) { const j = (i - 10) % 10; t[i] = hsv(Math.floor((i - 10) / 10) * 15, j & 1 ? .5 : 1, vs[j >> 1]); }
+  [0x33, 0x50, 0x69, 0x82, 0xbe, 0xff].forEach((g, k) => t[250 + k] = g * 0x10101);
+  return t;
+})();
+const lum = c => ((c >> 16 & 255) * .299 + (c >> 8 & 255) * .587 + (c & 255) * .114) / 255;
+const hex = c => '#' + (c & 0xffffff).toString(16).padStart(6, '0');
+const darken = (c, f) => hex((Math.round((c >> 16 & 255) * f) << 16) | (Math.round((c >> 8 & 255) * f) << 8) | Math.round((c & 255) * f));
+
+/* text metrics (Arial ≈ Helvetica, so screen and PDF agree) */
+const mctx = document.createElement('canvas').getContext('2d');
+mctx.font = '100px Arial, Helvetica, sans-serif';
+const wcache = new Map();
+function emW(s) { let w = wcache.get(s); if (w === undefined) { w = mctx.measureText(s).width / 100; if (wcache.size < 60000) wcache.set(s, w); } return w; }
+
+/* ============================== DXF parsing ============================== */
+let gc, gv;                                   // group codes / values of the file being parsed
+const sv = k => (gv[k] || '').trim();
+
+function decodeDxf(buf) {
+  const u8 = new Uint8Array(buf);
+  const head = String.fromCharCode(...u8.subarray(0, 22));
+  if (head.startsWith('AutoCAD Binary DXF')) throw new Error('Binary DXF isn’t supported — re-save it as ASCII DXF.');
+  if (/^AC10\d\d/.test(head)) throw new Error('This is a DWG file — export it as DXF first.');
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(u8); }
+  catch { return new TextDecoder('windows-1252').decode(u8); }
+}
+
+function records(b, e) {
+  const out = [];
+  for (let k = b; k < e;) {
+    if (gc[k] === 0) { let j = k + 1; while (j < e && gc[j] !== 0) j++; out.push({ type: sv(k), s: k + 1, e: j }); k = j; }
+    else k++;
+  }
+  return out;
+}
+function props(r) {
+  const p = {};
+  for (let k = r.s; k < r.e; k++) { const c = gc[k]; if (c >= 1000) break; if (p[c] === undefined) p[c] = gv[k]; }
+  return p;
+}
+const N = (p, c, d = 0) => { const v = p[c]; if (v === undefined) return d; const x = +v; return x === x ? x : d; };
+
+function readEnts(b, e) {
+  const out = []; let par = null;
+  for (const r of records(b, e)) {
+    const t = r.type;
+    if (t === 'VERTEX' || t === 'ATTRIB') { if (par) par.kids.push(r); }
+    else if (t === 'SEQEND') par = null;
+    else { out.push(r); if (t === 'POLYLINE' || t === 'INSERT') { r.kids = []; par = r; } else par = null; }
+  }
+  return out;
+}
+
+function parseDxf(text) {
+  const L = text.split(/\r\n|\r|\n/);
+  let st = 0; while (st < L.length && L[st].trim() === '') st++;
+  const n = (L.length - st) >> 1;
+  gc = new Int32Array(n); gv = new Array(n);
+  for (let i = 0, j = st; i < n; i++, j += 2) { gc[i] = parseInt(L[j], 10); gv[i] = L[j + 1]; }
+  const D = { header: {}, layers: new Map(), ltypes: new Map(), blocks: new Map(), brec: new Map(), layouts: new Map(), layerByHandle: new Map(), ents: [] };
+  let i = 0, sections = 0;
+  while (i < n) {
+    if (gc[i] === 0 && sv(i) === 'SECTION') {
+      sections++;
+      const name = sv(i + 1).toUpperCase(); let e = i + 2;
+      while (e < n && !(gc[e] === 0 && sv(e) === 'ENDSEC')) e++;
+      const b = i + 2;
+      if (name === 'HEADER') {
+        let h = null;
+        for (let k = b; k < e; k++) { if (gc[k] === 9) h = D.header[sv(k)] = {}; else if (h && h[gc[k]] === undefined) h[gc[k]] = gv[k]; }
+      } else if (name === 'TABLES') {
+        for (const r of records(b, e)) {
+          if (r.type === 'LAYER') {
+            const p = props(r), name = (p[2] || '0').trim(), c = parseInt(p[62] ?? 7) || 7, fl = parseInt(p[70] || 0);
+            D.layers.set(name.toUpperCase(), { name, aci: Math.min(255, Math.abs(c)) || 7, rgb: p[420] !== undefined ? (+p[420]) & 0xffffff : null,
+              off: c < 0, frozen: !!(fl & 1), lt: (p[6] || 'CONTINUOUS').trim().toUpperCase(), lw: p[370] !== undefined ? parseInt(p[370]) : -3 });
+            if (p[5]) D.layerByHandle.set(p[5].trim().toUpperCase(), name.toUpperCase());
+          } else if (r.type === 'LTYPE') {
+            const p = props(r), el = [];
+            for (let k = r.s; k < r.e; k++) if (gc[k] === 49) el.push(+gv[k]);
+            D.ltypes.set((p[2] || '').trim().toUpperCase(), el);
+          } else if (r.type === 'BLOCK_RECORD') {
+            const p = props(r); if (p[5] && p[2]) D.brec.set(p[5].trim().toUpperCase(), p[2].trim());
+          }
+        }
+      } else if (name === 'BLOCKS') {
+        let cur = null;
+        for (const r of records(b, e)) {
+          if (r.type === 'BLOCK') { const p = props(r); cur = { name: (p[2] || p[3] || '').trim(), bx: N(p, 10), by: N(p, 20), flags: parseInt(p[70] || 0), owner: (p[330] || '').trim().toUpperCase(), s: r.e }; }
+          else if (r.type === 'ENDBLK' && cur) { cur.ents = readEnts(cur.s, r.s - 1); D.blocks.set(cur.name.toUpperCase(), cur); cur = null; }
+        }
+      } else if (name === 'ENTITIES') D.ents = readEnts(b, e);
+      else if (name === 'OBJECTS') {
+        for (const r of records(b, e)) if (r.type === 'LAYOUT') {
+          let inL = false, nm = null, ord = 0, h = null;
+          for (let k = r.s; k < r.e; k++) {
+            const c = gc[k];
+            if (c === 100) inL = sv(k) === 'AcDbLayout';
+            else if (inL) { if (c === 1 && nm === null) nm = sv(k); else if (c === 71) ord = +gv[k]; else if (c === 330 && h === null) h = sv(k).toUpperCase(); }
+          }
+          if (h) D.layouts.set(h, { name: nm, ord });
+        }
+      }
+      i = e + 1;
+    } else i++;
+  }
+  if (!sections) D.ents = readEnts(0, n);
+  return D;
+}
+
+/* text cleanup */
+function special(s) {
+  if (s.indexOf('%%') >= 0) s = s.replace(/%%(\d{3}|.)/g, (m, c) => {
+    if (c.length === 3) return String.fromCharCode(+c);
+    switch (c.toLowerCase()) { case 'c': return 'Ø'; case 'd': return '°'; case 'p': return '±'; case '%': return '%'; default: return ''; }
+  });
+  if (s.indexOf('\\U+') >= 0) s = s.replace(/\\U\+([0-9a-fA-F]{4})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+  return s;
+}
+function mclean(s) {
+  let o = '';
+  for (let i = 0; i < s.length;) {
+    const c = s[i];
+    if (c === '\\') {
+      const d = s[i + 1];
+      if (d === 'P' || d === 'N') { o += '\n'; i += 2; }
+      else if (d === '~') { o += ' '; i += 2; }
+      else if (d === '\\' || d === '{' || d === '}') { o += d; i += 2; }
+      else if (d === 'U' && s[i + 2] === '+') { o += String.fromCharCode(parseInt(s.substr(i + 3, 4), 16) || 63); i += 7; }
+      else if (d === 'S') { const j = s.indexOf(';', i); o += s.slice(i + 2, j < 0 ? s.length : j).replace(/[\^#]/g, '/'); i = j < 0 ? s.length : j + 1; }
+      else if ('ACcFfHQTWpabX'.includes(d)) { const j = s.indexOf(';', i); i = j < 0 ? s.length : j + 1; }
+      else i += 2;
+    } else if (c === '{' || c === '}') i++;
+    else if (c === '^' && i + 1 < s.length) { const d = s[i + 1]; o += d === 'J' ? '\n' : d === 'I' ? ' ' : d === ' ' ? '^' : ''; i += 2; }
+    else { o += c; i++; }
+  }
+  return special(o);
+}
+
+/* geometry helpers */
+function arcPts(out, cx, cy, r, a0, sw) {
+  const n = Math.max(3, Math.ceil(Math.abs(sw) * 10));
+  for (let k = 0; k <= n; k++) { const a = a0 + sw * k / n; out.push(cx + r * Math.cos(a), cy + r * Math.sin(a)); }
+  return out;
+}
+function ellPts(out, cx, cy, mx, my, vx, vy, t0, sw) {
+  const n = Math.max(4, Math.ceil(Math.abs(sw) * 12));
+  for (let k = 0; k <= n; k++) { const t = t0 + sw * k / n, c = Math.cos(t), s = Math.sin(t); out.push(cx + mx * c + vx * s, cy + my * c + vy * s); }
+  return out;
+}
+function bulgeTo(out, x1, y1, x2, y2, bu) {
+  const dx = x2 - x1, dy = y2 - y1, c = Math.hypot(dx, dy);
+  if (!bu || c < 1e-12) { out.push(x2, y2); return; }
+  const th = 4 * Math.atan(bu), d = c * (1 - bu * bu) / (4 * bu);
+  const cx = (x1 + x2) / 2 - dy / c * d, cy = (y1 + y2) / 2 + dx / c * d;
+  const r = Math.hypot(x1 - cx, y1 - cy), a0 = Math.atan2(y1 - cy, x1 - cx);
+  const n = Math.max(2, Math.ceil(Math.abs(th) * 10));
+  for (let k = 1; k < n; k++) { const a = a0 + th * k / n; out.push(cx + r * Math.cos(a), cy + r * Math.sin(a)); }
+  out.push(x2, y2);
+}
+function polyPts(xy, bs, closed) {
+  const n = xy.length / 2; if (n < 1) return [];
+  const out = [xy[0], xy[1]], m = closed ? n : n - 1;
+  for (let k = 0; k < m; k++) { const j = (k + 1) % n; bulgeTo(out, xy[2 * k], xy[2 * k + 1], xy[2 * j], xy[2 * j + 1], bs[k] || 0); }
+  return out;
+}
+function splinePts(cp, w, kn, deg) {
+  const n = cp.length / 2;
+  if (deg < 1 || n <= deg || kn.length !== n + deg + 1) return null;
+  const t0 = kn[deg], t1 = kn[n]; if (!(t1 > t0)) return null;
+  const segs = Math.min(4000, Math.max(24, n * 12)), out = [];
+  const dx = new Float64Array(deg + 1), dy = new Float64Array(deg + 1), dw = new Float64Array(deg + 1);
+  let k = deg;
+  for (let s = 0; s <= segs; s++) {
+    const t = t0 + (t1 - t0) * s / segs;
+    while (k < n - 1 && t >= kn[k + 1]) k++;
+    for (let j = 0; j <= deg; j++) { const id = j + k - deg, ww = w ? (w[id] || 1) : 1; dx[j] = cp[2 * id] * ww; dy[j] = cp[2 * id + 1] * ww; dw[j] = ww; }
+    for (let r = 1; r <= deg; r++) for (let j = deg; j >= r; j--) {
+      const i0 = j + k - deg, den = kn[i0 + deg - r + 1] - kn[i0], al = den ? (t - kn[i0]) / den : 0;
+      dx[j] = (1 - al) * dx[j - 1] + al * dx[j]; dy[j] = (1 - al) * dy[j - 1] + al * dy[j]; dw[j] = (1 - al) * dw[j - 1] + al * dw[j];
+    }
+    out.push(dx[deg] / dw[deg], dy[deg] / dw[deg]);
+  }
+  return out;
+}
+function catmull(pts, closed) {
+  const n = pts.length / 2; if (n < 3) return pts;
+  const P = i => { i = closed ? (i + n) % n : Math.max(0, Math.min(n - 1, i)); return [pts[2 * i], pts[2 * i + 1]]; };
+  const out = [pts[0], pts[1]], m = closed ? n : n - 1;
+  for (let i = 0; i < m; i++) {
+    const [x0, y0] = P(i - 1), [x1, y1] = P(i), [x2, y2] = P(i + 1), [x3, y3] = P(i + 2);
+    for (let s = 1; s <= 8; s++) {
+      const t = s / 8, t2 = t * t, t3 = t2 * t;
+      out.push(.5 * (2 * x1 + (x2 - x0) * t + (2 * x0 - 5 * x1 + 4 * x2 - x3) * t2 + (3 * x1 - x0 - 3 * x2 + x3) * t3),
+               .5 * (2 * y1 + (y2 - y0) * t + (2 * y0 - 5 * y1 + 4 * y2 - y3) * t2 + (3 * y1 - y0 - 3 * y2 + y3) * t3));
+    }
+  }
+  return out;
+}
+function ocs(p) {
+  let nx = N(p, 210), ny = N(p, 220), nz = N(p, 230, 1);
+  if (!nx && !ny && nz > 0) return null;
+  const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+  let ax, ay, az;
+  if (Math.abs(nx) < 1 / 64 && Math.abs(ny) < 1 / 64) { ax = nz; ay = 0; az = -nx; } else { ax = -ny; ay = nx; az = 0; }
+  const al = Math.hypot(ax, ay, az) || 1; ax /= al; ay /= al; az /= al;
+  return [ax, ay, ny * az - nz * ay, nz * ax - nx * az, 0, 0];
+}
+function dashArr(el, scale) {
+  if (!el || !el.length) return null;
+  const items = [];
+  if (el[0] < 0) items.push([true, 0]);
+  for (const v of el) { const on = v >= 0, len = Math.abs(v) * scale; if (items.length && items[items.length - 1][0] === on) items[items.length - 1][1] += len; else items.push([on, len]); }
+  if (items.length % 2) { const last = items.pop(); items[0][1] += last[1]; }
+  const d = items.map(x => x[1]);
+  return d.length >= 2 && d.reduce((a, b) => a + b, 0) > 0 ? d : null;
+}
+
+/* hatch pattern lines clipped to boundary (even-odd) */
+function hatchLines(rings, pl) {
+  const ex = [];
+  for (const r of rings) {
+    for (let k = 0; k + 3 < r.length; k += 2) ex.push(r[k], r[k + 1], r[k + 2], r[k + 3]);
+    if (r.length >= 4) ex.push(r[r.length - 2], r[r.length - 1], r[0], r[1]);
+  }
+  const out = []; let budget = 400000;
+  for (const L of pl) {
+    const ux = Math.cos(L.ang), uy = Math.sin(L.ang), nx = -uy, ny = ux;
+    const d = L.ox * nx + L.oy * ny; if (Math.abs(d) < 1e-9) continue;
+    let lo = Infinity, hi = -Infinity;
+    for (let k = 0; k < ex.length; k += 2) { const t = (ex[k] - L.bx) * nx + (ex[k + 1] - L.by) * ny; if (t < lo) lo = t; if (t > hi) hi = t; }
+    const a = lo / d, b = hi / d, k0 = Math.ceil(Math.min(a, b)), k1 = Math.floor(Math.max(a, b));
+    if (k1 - k0 > 20000) return null;
+    const P = L.ds.reduce((s, v) => s + Math.abs(v), 0);
+    for (let q = k0; q <= k1; q++) {
+      const ox = L.bx + q * L.ox, oy = L.by + q * L.oy, xs = [];
+      for (let k = 0; k < ex.length; k += 4) {
+        const dp = (ex[k] - ox) * nx + (ex[k + 1] - oy) * ny, dq = (ex[k + 2] - ox) * nx + (ex[k + 3] - oy) * ny;
+        if ((dp > 0) !== (dq > 0)) { const sp = (ex[k] - ox) * ux + (ex[k + 1] - oy) * uy, sq = (ex[k + 2] - ox) * ux + (ex[k + 3] - oy) * uy; xs.push(sp + (sq - sp) * dp / (dp - dq)); }
+      }
+      if (xs.length < 2) continue;
+      xs.sort((x, y) => x - y);
+      for (let z = 0; z + 1 < xs.length; z += 2) {
+        const s0 = xs[z], s1 = xs[z + 1];
+        if (!L.ds.length || P <= 0 || (s1 - s0) / P > 5000) { out.push(ox + ux * s0, oy + uy * s0, ox + ux * s1, oy + uy * s1); if (--budget < 0) return out; continue; }
+        let s = Math.floor(s0 / P) * P;
+        while (s < s1) {
+          for (const dv of L.ds) {
+            const len = Math.abs(dv);
+            if (dv >= 0) {
+              const e0 = s, e1 = dv > 0 ? s + len : s + P * 0.002;
+              const c0 = Math.max(e0, s0), c1 = Math.min(e1, s1);
+              if (c1 > c0) { out.push(ox + ux * c0, oy + uy * c0, ox + ux * c1, oy + uy * c1); if (--budget < 0) return out; }
+            }
+            s += len; if (s >= s1) break;
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/* ============================== flatten to drawable batches ============================== */
+function buildDrawing(D, name) {
+  const H = D.header, hv = (v, c, d) => { const h = H[v]; const x = h && h[c] !== undefined ? +h[c] : NaN; return x === x ? x : d; };
+  const LTS = hv('$LTSCALE', 40, 1) || 1;
+  const F = { name, units: hv('$INSUNITS', 70, 0) | 0, layers: new Map(), spaces: [], skipped: {}, total: 0, errors: 0, truncated: false };
+  for (const [key, l] of D.layers) F.layers.set(key, { key, name: l.name, rgb: l.rgb != null ? l.rgb : (l.aci === 7 ? -1 : ACI[l.aci] ?? -1),
+    on: !l.off && !l.frozen, lt: l.lt, lw: l.lw, n: 0 });
+  const layer = (key, nm) => { let L = F.layers.get(key); if (!L) { L = { key, name: nm, rgb: -1, on: true, lt: '', lw: -3, n: 0 }; F.layers.set(key, L); } return L; };
+  let SP = null, budget = 16e6;
+
+  function style(p, ctx) {
+    const lname = (p[8] ?? '0').trim() || '0';
+    let key = lname.toUpperCase(); if (key === '0' && ctx.lay) key = ctx.lay;
+    const L = layer(key, lname);
+    let col;
+    if (p[420] !== undefined) col = (+p[420]) & 0xffffff;
+    else { const a = p[62] !== undefined ? parseInt(p[62]) : 256; col = a === 0 ? ctx.col : (a >= 256 || a < 0 || !(a === a)) ? L.rgb : a === 7 ? -1 : ACI[a]; }
+    let lt = (p[6] ?? 'BYLAYER').trim().toUpperCase();
+    if (lt === 'BYLAYER') lt = L.lt; else if (lt === 'BYBLOCK') lt = ctx.lt;
+    if (!lt || lt === 'CONTINUOUS' || lt === 'BYLAYER' || lt === 'BYBLOCK') lt = '';
+    let lw = p[370] !== undefined ? parseInt(p[370]) : -1;
+    if (lw === -1) lw = L.lw; else if (lw === -2) lw = ctx.lw;
+    if (!(lw >= 0)) lw = -3;
+    const lts = LTS * (N(p, 48, 1) || 1) * ctx.lts;
+    return { key, col, lt, lts, lw };
+  }
+  function batch(st, ctx) {
+    const key = st.key + '\x01' + ctx.anc + '\x01' + st.col + '\x01' + st.lt + (st.lt ? '@' + st.lts.toPrecision(3) : '') + '\x01' + st.lw;
+    let b = SP.map.get(key);
+    if (!b) {
+      b = { lay: st.key, anc: ctx.ancArr, col: st.col, lw: st.lw, lt: st.lt, dash: null, dashLen: 0, lines: [], seg: [], lbb: [], types: [], blks: [],
+        fills: [], texts: [], bb: [Infinity, Infinity, -Infinity, -Infinity], path: null, fpath: null, o: null };
+      if (st.lt) { const d = dashArr(D.ltypes.get(st.lt), st.lts); if (d) { b.dash = d; b.dashLen = d.reduce((x, y) => x + y, 0); } }
+      SP.map.set(key, b);
+    }
+    return b;
+  }
+  const B = (p, ctx) => batch(style(p, ctx), ctx);
+  const mOf = (ctx, p) => { const o = ocs(p); return o ? mul(ctx.m, o) : ctx.m; };
+
+  function addLine(b, pts, m, type, ctx, seg) {
+    const n = pts.length; if (n < 4) return;
+    if ((budget -= n) < 0) { F.truncated = true; return; }
+    const a = new Float64Array(n), m0 = m[0], m1 = m[1], m2 = m[2], m3 = m[3], m4 = m[4], m5 = m[5];
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let k = 0; k < n; k += 2) {
+      const x = pts[k], y = pts[k + 1], X = m0 * x + m2 * y + m4, Y = m1 * x + m3 * y + m5;
+      if (!(Math.abs(X) < 1e14 && Math.abs(Y) < 1e14)) return;
+      a[k] = X; a[k + 1] = Y; if (X < x0) x0 = X; if (X > x1) x1 = X; if (Y < y0) y0 = Y; if (Y > y1) y1 = Y;
+    }
+    b.lines.push(a); b.seg.push(!!seg); b.lbb.push(x0, y0, x1, y1); b.types.push(ctx.tag || type); b.blks.push(ctx.blk); grow(b.bb, x0, y0, x1, y1);
+  }
+  function addFill(b, rings, m, type, ctx) {
+    const out = [], bb = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const r of rings) {
+      if (r.length < 6) continue;
+      if ((budget -= r.length) < 0) { F.truncated = true; return; }
+      const a = new Float64Array(r.length);
+      for (let k = 0; k < r.length; k += 2) { const X = m[0] * r[k] + m[2] * r[k + 1] + m[4], Y = m[1] * r[k] + m[3] * r[k + 1] + m[5]; if (!(Math.abs(X) < 1e14 && Math.abs(Y) < 1e14)) return; a[k] = X; a[k + 1] = Y; grow(bb, X, Y, X, Y); }
+      out.push(a);
+    }
+    if (!out.length) return;
+    out.bb = bb; out.type = ctx.tag || type; out.blk = ctx.blk;
+    b.fills.push(out); grow(b.bb, bb[0], bb[1], bb[2], bb[3]);
+  }
+  function addText(b, M, s, w, type, ctx) {
+    const bb = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const [u, v] of [[0, -DESC], [w, -DESC], [w, .9], [0, .9]]) { const [x, y] = ap(M, u, v); grow(bb, x, y, x, y); }
+    if (!(Math.abs(bb[0]) < 1e14 && Math.abs(bb[3]) < 1e14)) return;
+    b.texts.push({ m: M, s, bb, type: ctx.tag || type, blk: ctx.blk }); grow(b.bb, bb[0], bb[1], bb[2], bb[3]);
+  }
+
+  function text(p, ctx, isAttr, type) {
+    let s = p[1]; if (s === undefined) return; s = special(s).replace(/\t/g, ' '); if (!s.trim()) return;
+    const b = B(p, ctx);
+    let h = N(p, 40); if (!(h > 0)) h = 2.5;
+    let fs = h / CAP, wf = N(p, 41, 1) || 1, ang = N(p, 50) * DEG;
+    const obl = N(p, 51) * DEG, ha = N(p, 72) | 0, va = N(p, isAttr ? 74 : 73) | 0, gen = N(p, 71) | 0;
+    const x1 = N(p, 10), y1 = N(p, 20), has2 = p[11] !== undefined, x2 = N(p, 11, x1), y2 = N(p, 21, y1);
+    const w = emW(s);
+    let px = x1, py = y1, ox = 0, oy = 0;
+    if (ha === 3 || ha === 5) {
+      const d = Math.hypot(x2 - x1, y2 - y1);
+      if (has2 && d > 0 && w > 0) { ang = Math.atan2(y2 - y1, x2 - x1); if (ha === 5) wf = d / (w * fs); else fs = d / (w * wf); }
+    } else if (ha || va) {
+      if (has2) { px = x2; py = y2; }
+      const W = w * fs * wf; if (ha === 1 || ha === 4) ox = -W / 2; else if (ha === 2) ox = -W;
+    }
+    const hh = fs * CAP;
+    if (ha === 4) oy = -hh / 2; else if (va === 1) oy = DESC * fs; else if (va === 2) oy = -hh / 2; else if (va === 3) oy = -hh;
+    let M = mul(mOf(ctx, p), mul(tr(px, py), mul(rot(ang), tr(ox, oy))));
+    M = mul(M, scl(fs * wf * (gen & 2 ? -1 : 1), fs * (gen & 4 ? -1 : 1)));
+    if (obl) M = mul(M, [1, 0, Math.tan(obl), 1, 0, 0]);
+    addText(b, M, s, w, type, ctx);
+  }
+  function mtext(r, p, ctx) {
+    let raw = '';
+    for (let k = r.s; k < r.e; k++) { const c = gc[k]; if (c >= 1000 || c === 101) break; if (c === 3 || c === 1) raw += gv[k]; }
+    const paras = mclean(raw).replace(/\t/g, ' ').split('\n');
+    const h = N(p, 40, 2.5) || 2.5, fs = h / CAP, refW = N(p, 41), att = (N(p, 71, 1) | 0) || 1;
+    const ang = p[11] !== undefined ? Math.atan2(N(p, 21), N(p, 11)) : N(p, 50) * DEG;
+    const lsp = h * 5 / 3 * (N(p, 44, 1) || 1), lines = [];
+    for (const ln of paras) {
+      if (refW > 0 && emW(ln) * fs > refW * 1.02) {
+        let cur = '';
+        for (const wd of ln.split(' ')) { const t = cur ? cur + ' ' + wd : wd; if (cur && emW(t) * fs > refW * 1.02) { lines.push(cur); cur = wd; } else cur = t; }
+        lines.push(cur);
+      } else lines.push(ln);
+    }
+    const nL = lines.length, col = (att - 1) % 3, row = Math.floor((att - 1) / 3);
+    const y0 = row === 0 ? -h : row === 1 ? -h + ((nL - 1) * lsp + h) / 2 : (nL - 1) * lsp;
+    const b = B(p, ctx), base = mul(ctx.m, mul(tr(N(p, 10), N(p, 20)), rot(ang)));
+    lines.forEach((ln, i) => {
+      if (!ln.trim()) return;
+      const w = emW(ln), W = w * fs, ox = col === 0 ? 0 : col === 1 ? -W / 2 : -W;
+      addText(b, mul(base, mul(tr(ox, y0 - i * lsp), scl(fs, fs))), ln, w, 'MTEXT', ctx);
+    });
+  }
+  function child(ctx, st, M, blkName, tag) {
+    const ancArr = ctx.ancArr.includes(st.key) ? ctx.ancArr : ctx.ancArr.concat(st.key);
+    return { m: M, lay: st.key, col: st.col, lt: st.lt, lw: st.lw, lts: ctx.lts, ancArr, anc: ancArr.join('\x02'),
+      blk: blkName ? (ctx.blk ? ctx.blk + ' › ' + blkName : blkName) : ctx.blk, tag: tag || ctx.tag, depth: ctx.depth + 1, stack: ctx.stack };
+  }
+  function hatch(r, p, ctx) {
+    let k = r.s; const e = r.e;
+    while (k < e && !(gc[k] === 100 && sv(k) === 'AcDbHatch')) k++;
+    if (k >= e) k = r.s; else k++;
+    const get = code => { for (let j = k, lim = Math.min(e, k + 6); j < lim; j++) if (gc[j] === code) { k = j + 1; return +gv[j]; } return NaN; };
+    const getS = code => { for (let j = k, lim = Math.min(e, k + 6); j < lim; j++) if (gc[j] === code) { k = j + 1; return gv[j]; } return ''; };
+    get(10); get(20); get(30);
+    const pat = getS(2).trim(), solid = get(70) === 1 || /^SOLID$/i.test(pat); get(71);
+    const np = get(91) | 0, rings = [];
+    const join = (ring, pts) => {
+      let s = 0;
+      if (ring.length && Math.abs(ring[ring.length - 2] - pts[0]) < 1e-9 && Math.abs(ring[ring.length - 1] - pts[1]) < 1e-9) s = 2;
+      for (let q = s; q < pts.length; q++) ring.push(pts[q]);
+    };
+    for (let q = 0; q < np && k < e; q++) {
+      const type = get(92) | 0, ring = [];
+      if (type & 2) {
+        const hasB = get(72) | 0; get(73); const nv = get(93) | 0, xy = [], bs = [];
+        for (let v = 0; v < nv && k < e; v++) { xy.push(get(10), get(20)); bs.push(hasB && gc[k] === 42 ? +gv[k++] : 0); }
+        rings.push(polyPts(xy, bs, true));
+      } else {
+        const ne = get(93) | 0;
+        for (let ed = 0; ed < ne && k < e; ed++) {
+          const et = get(72) | 0;
+          if (et === 1) { const x1 = get(10), y1 = get(20), x2 = get(11), y2 = get(21); join(ring, [x1, y1, x2, y2]); }
+          else if (et === 2) {
+            const cx = get(10), cy = get(20), rr = get(40), a0 = get(50) * DEG, a1 = get(51) * DEG, ccw = get(73), sw = sweep(a1 - a0);
+            join(ring, ccw ? arcPts([], cx, cy, rr, a0, sw) : arcPts([], cx, cy, rr, -a0, -sw));
+          } else if (et === 3) {
+            const cx = get(10), cy = get(20), mx = get(11), my = get(21), ra = get(40), a0 = get(50) * DEG, a1 = get(51) * DEG, ccw = get(73), sw = sweep(a1 - a0);
+            join(ring, ellPts([], cx, cy, mx, my, -my * ra, mx * ra, ccw ? a0 : -a0, ccw ? sw : -sw));
+          } else if (et === 4) {
+            const deg = get(94) | 0; get(73); get(74); const nk = get(95) | 0, nc = get(96) | 0, kn = [], cp = [], w = [];
+            for (let z = 0; z < nk; z++) kn.push(get(40));
+            for (let z = 0; z < nc; z++) { cp.push(get(10), get(20)); if (gc[k] === 42) w.push(+gv[k++]); }
+            if (gc[k] === 97 && [11, 12, 72, 97].includes(gc[k + 1])) {
+              const nf = get(97) | 0; for (let z = 0; z < nf; z++) { get(11); get(21); }
+              if (gc[k] === 12) k += 2; if (gc[k] === 13) k += 2;
+            }
+            join(ring, splinePts(cp, w.length === nc ? w : null, kn, deg) || cp);
+          }
+        }
+        rings.push(ring);
+      }
+      const ns = get(97) | 0; for (let z = 0; z < ns; z++) get(330);
+    }
+    const m = mOf(ctx, p), b = B(p, ctx);
+    if (solid) { addFill(b, rings, m, 'HATCH', ctx); return; }
+    get(75); get(76); get(52); get(41); get(77);
+    const nl = get(78) | 0, pl = [];
+    for (let z = 0; z < nl && k < e; z++) {
+      const ang = get(53) * DEG, bx = get(43), by = get(44), ox = get(45), oy = get(46), nd = get(79) | 0, ds = [];
+      for (let d = 0; d < nd; d++) ds.push(get(49));
+      if ([ang, bx, by, ox, oy].every(v => v === v)) pl.push({ ang, bx, by, ox, oy, ds });
+    }
+    const segs = pl.length ? hatchLines(rings, pl) : null;
+    if (segs && segs.length) addLine(b, segs, m, 'HATCH', ctx, true);
+    else for (const r of rings) addLine(b, r.concat(r.slice(0, 2)), m, 'HATCH', ctx);
+  }
+
+  function entity(r, ctx) {
+    const t = r.type, p = props(r);
+    if (N(p, 60) === 1) return;
+    switch (t) {
+      case 'LINE': addLine(B(p, ctx), [N(p, 10), N(p, 20), N(p, 11), N(p, 21)], ctx.m, t, ctx); break;
+      case 'CIRCLE': { const R = N(p, 40); if (R > 0) addLine(B(p, ctx), arcPts([], N(p, 10), N(p, 20), R, 0, TAU), mOf(ctx, p), t, ctx); break; }
+      case 'ARC': { const R = N(p, 40), a0 = N(p, 50) * DEG; if (R > 0) addLine(B(p, ctx), arcPts([], N(p, 10), N(p, 20), R, a0, sweep(N(p, 51) * DEG - a0)), mOf(ctx, p), t, ctx); break; }
+      case 'ELLIPSE': {
+        let nx = N(p, 210), ny = N(p, 220), nz = N(p, 230, 1); const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+        const mx = N(p, 11), my = N(p, 21), mz = N(p, 31), ra = N(p, 40, 1), t0 = N(p, 41), t1 = N(p, 42, TAU);
+        addLine(B(p, ctx), ellPts([], N(p, 10), N(p, 20), mx, my, (ny * mz - nz * my) * ra, (nz * mx - nx * mz) * ra, t0, sweep(t1 - t0)), ctx.m, t, ctx); break;
+      }
+      case 'LWPOLYLINE': {
+        const xy = [], bs = []; let fl = 0;
+        for (let k = r.s; k < r.e; k++) {
+          const c = gc[k]; if (c >= 1000) break;
+          if (c === 10) { xy.push(+gv[k], 0); bs.push(0); } else if (c === 20 && xy.length) xy[xy.length - 1] = +gv[k];
+          else if (c === 42 && bs.length) bs[bs.length - 1] = +gv[k]; else if (c === 70) fl = +gv[k] | 0;
+        }
+        addLine(B(p, ctx), polyPts(xy, bs, !!(fl & 1)), mOf(ctx, p), t, ctx); break;
+      }
+      case 'POLYLINE': {
+        const fl = N(p, 70) | 0, b = B(p, ctx), vs = (r.kids || []).map(props);
+        if (fl & 64) {
+          const pts = [], segs = [];
+          for (const v of vs) {
+            const vf = N(v, 70) | 0;
+            if ((vf & 128) && (vf & 64)) pts.push([N(v, 10), N(v, 20)]);
+            else if (vf & 128) {
+              const idx = [N(v, 71) | 0, N(v, 72) | 0, N(v, 73) | 0, N(v, 74) | 0].filter(x => x !== 0);
+              for (let q = 0; q < idx.length; q++) { const a = idx[q], c = idx[(q + 1) % idx.length], P1 = pts[Math.abs(a) - 1], P2 = pts[Math.abs(c) - 1]; if (a > 0 && P1 && P2) segs.push(P1[0], P1[1], P2[0], P2[1]); }
+            }
+          }
+          addLine(b, segs, ctx.m, 'POLYFACE', ctx, true);
+        } else if (fl & 16) {
+          const M_ = N(p, 71) | 0, N_ = N(p, 72) | 0, pts = vs.map(v => [N(v, 10), N(v, 20)]), segs = [];
+          if (M_ * N_ === pts.length) {
+            for (let i = 0; i < M_; i++) for (let j = 0; j < N_; j++) {
+              const P0 = pts[i * N_ + j];
+              if (j + 1 < N_ || (fl & 32)) { const P1 = pts[i * N_ + (j + 1) % N_]; segs.push(P0[0], P0[1], P1[0], P1[1]); }
+              if (i + 1 < M_ || (fl & 1)) { const P1 = pts[((i + 1) % M_) * N_ + j]; segs.push(P0[0], P0[1], P1[0], P1[1]); }
+            }
+          }
+          addLine(b, segs, ctx.m, 'MESH', ctx, true);
+        } else {
+          const is3d = !!(fl & 8), xy = [], bs = [];
+          for (const v of vs) { const vf = N(v, 70) | 0; if ((fl & 4) && (vf & 16)) continue; xy.push(N(v, 10), N(v, 20)); bs.push(is3d ? 0 : N(v, 42)); }
+          addLine(b, polyPts(xy, bs, !!(fl & 1)), is3d ? ctx.m : mOf(ctx, p), t, ctx);
+        }
+        break;
+      }
+      case 'SPLINE': {
+        const cp = [], fp = [], kn = [], w = []; let deg = 3, fl = 0;
+        for (let k = r.s; k < r.e; k++) {
+          const c = gc[k], v = +gv[k]; if (c >= 1000) break;
+          if (c === 10) cp.push(v, 0); else if (c === 20) cp[cp.length - 1] = v; else if (c === 11) fp.push(v, 0); else if (c === 21) fp[fp.length - 1] = v;
+          else if (c === 40) kn.push(v); else if (c === 41) w.push(v); else if (c === 71) deg = v | 0; else if (c === 70) fl = v | 0;
+        }
+        let pts = cp.length >= 4 ? splinePts(cp, w.length === cp.length / 2 ? w : null, kn, deg) : null;
+        if (!pts) pts = fp.length >= 6 ? catmull(fp, !!(fl & 1)) : fp.length >= 4 ? fp : cp;
+        addLine(B(p, ctx), pts, ctx.m, t, ctx); break;
+      }
+      case 'TEXT': text(p, ctx, false, 'TEXT'); break;
+      case 'MTEXT': mtext(r, p, ctx); break;
+      case 'INSERT': case 'ACAD_TABLE': {
+        const nm = (p[2] || '').trim(), blk = D.blocks.get(nm.toUpperCase()), st = style(p, ctx);
+        let ch = null;
+        if (blk && !(blk.flags & 4) && ctx.depth < 24 && !ctx.stack.includes(blk)) {
+          const sx = N(p, 41, 1), sy = N(p, 42, 1), cols = Math.max(1, N(p, 70, 1) | 0), rows = Math.max(1, N(p, 71, 1) | 0), cs = N(p, 44), rs = N(p, 45);
+          const base = mul(mOf(ctx, p), mul(tr(N(p, 10), N(p, 20)), rot(N(p, 50) * DEG))), tail = mul(scl(sx, sy), tr(-blk.bx, -blk.by));
+          ch = child(ctx, st, null, blk.name.startsWith('*') ? '' : blk.name, t === 'ACAD_TABLE' ? 'TABLE' : '');
+          ch.lts = ctx.lts * (Math.sqrt(Math.abs(sx * sy)) || 1); ch.stack = ctx.stack.concat(blk);
+          const R = Math.min(rows, 200), Cn = Math.min(cols, 200);
+          for (let i = 0; i < R; i++) for (let j = 0; j < Cn; j++) { ch.m = mul(base, mul(tr(j * cs, i * rs), tail)); list(blk.ents, ch); }
+        }
+        if (r.kids) {
+          const actx = ch ? Object.assign({}, ch, { m: ctx.m, tag: '' }) : ctx;
+          for (const a of r.kids) { const q = props(a); if (N(q, 60) === 1 || (N(q, 70) & 1)) continue; text(q, actx, true, 'ATTRIB'); }
+        }
+        break;
+      }
+      case 'DIMENSION': case 'ARC_DIMENSION': case 'LARGE_RADIAL_DIMENSION': {
+        const blk = D.blocks.get((p[2] || '').trim().toUpperCase());
+        if (blk && ctx.depth < 24 && !ctx.stack.includes(blk)) {
+          const ch = child(ctx, style(p, ctx), ctx.m, '', 'DIMENSION'); ch.stack = ctx.stack.concat(blk);
+          list(blk.ents, ch);
+        } else F.skipped[t] = (F.skipped[t] || 0) + 1;
+        break;
+      }
+      case 'SOLID': case 'TRACE': {
+        const x3 = N(p, 12), y3 = N(p, 22);
+        addFill(B(p, ctx), [[N(p, 10), N(p, 20), N(p, 11), N(p, 21), N(p, 13, x3), N(p, 23, y3), x3, y3]], mOf(ctx, p), t, ctx); break;
+      }
+      case '3DFACE': {
+        const P = [[N(p, 10), N(p, 20)], [N(p, 11), N(p, 21)], [N(p, 12), N(p, 22)], [N(p, 13, N(p, 12)), N(p, 23, N(p, 22))]], fl = N(p, 70) | 0, segs = [];
+        for (let q = 0; q < 4; q++) if (!(fl & (1 << q))) { const a = P[q], c = P[(q + 1) % 4]; segs.push(a[0], a[1], c[0], c[1]); }
+        addLine(B(p, ctx), segs, ctx.m, t, ctx, true); break;
+      }
+      case 'HATCH': hatch(r, p, ctx); break;
+      case 'LEADER': {
+        const xy = []; for (let k = r.s; k < r.e; k++) { const c = gc[k]; if (c >= 1000) break; if (c === 10) xy.push(+gv[k], 0); else if (c === 20 && xy.length) xy[xy.length - 1] = +gv[k]; }
+        addLine(B(p, ctx), xy, ctx.m, t, ctx); break;
+      }
+      case 'IMAGE': {
+        const x = N(p, 10), y = N(p, 20), ux = N(p, 11), uy = N(p, 21), vx = N(p, 12), vy = N(p, 22), w = N(p, 13), h = N(p, 23);
+        const ax = x + ux * w, ay = y + uy * w, bx = x + vx * h, by = y + vy * h;
+        addLine(B(p, ctx), [x, y, ax, ay, ax + vx * h, ay + vy * h, bx, by, x, y, ax + vx * h, ay + vy * h], ctx.m, 'IMAGE (frame)', ctx); break;
+      }
+      case 'VIEWPORT': {
+        if (SP.kind !== 'paper' || ctx.depth) break;
+        const id = N(p, 69), stt = N(p, 68, 1);
+        if (id === 1 || stt === 0) break;
+        const frozen = new Set();
+        for (let k = r.s; k < r.e; k++) if (gc[k] === 341) { const L = D.layerByHandle.get(sv(k).toUpperCase()); if (L) frozen.add(L); }
+        const vp = { cx: N(p, 10), cy: N(p, 20), w: N(p, 40), h: N(p, 41), vcx: N(p, 12) + N(p, 17), vcy: N(p, 22) + N(p, 27), vh: N(p, 45), tw: N(p, 51) * DEG, frozen };
+        if (vp.w > 0 && vp.h > 0 && vp.vh > 0) SP.viewports.push(vp);
+        break;
+      }
+      case 'POINT': case 'ATTDEF': case 'SEQEND': case 'VERTEX': case 'ENDBLK': break;
+      default: if (!ctx.depth) F.skipped[t] = (F.skipped[t] || 0) + 1;
+    }
+  }
+  function list(ents, ctx) {
+    for (const r of ents) {
+      if (!ctx.depth) F.total++;
+      try { entity(r, ctx); } catch (err) { F.errors++; if (F.errors < 5) console.warn('DXF entity skipped', r.type, err); }
+    }
+  }
+  const mkSpace = (nm, kind) => ({ name: nm, kind, map: new Map(), batches: [], viewports: [], bb: null, origin: [0, 0] });
+  function finalize(sp) {
+    sp.batches = [...sp.map.values()].filter(b => b.lines.length || b.fills.length || b.texts.length); sp.map = null;
+    const bb = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const b of sp.batches) grow(bb, b.bb[0], b.bb[1], b.bb[2], b.bb[3]);
+    for (const vp of sp.viewports) grow(bb, vp.cx - vp.w / 2, vp.cy - vp.h / 2, vp.cx + vp.w / 2, vp.cy + vp.h / 2);
+    sp.bb = bb[0] <= bb[2] ? bb : null;
+    sp.origin = sp.bb ? [(bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2] : [0, 0];
+    for (const b of sp.batches) { b.o = sp.origin; const L = F.layers.get(b.lay); if (L) L.n += b.lines.length + b.fills.length + b.texts.length; }
+    return sp;
+  }
+  const ctx0 = { m: I6, lay: null, col: -1, lt: '', lw: -3, lts: 1, ancArr: [], anc: '', blk: '', tag: '', depth: 0, stack: [] };
+  const mEnts = [], pEnts = [];
+  for (const r of D.ents) { let ps = false; for (let k = r.s; k < r.e; k++) if (gc[k] === 67) { ps = +gv[k] === 1; break; } (ps ? pEnts : mEnts).push(r); }
+  SP = mkSpace('Model', 'model'); list(mEnts, ctx0); F.spaces.push(finalize(SP));
+
+  const lays = [];
+  let activeH = null; for (const [h, nm] of D.brec) if (nm.toUpperCase() === '*PAPER_SPACE') activeH = h;
+  const handleOf = up => { for (const [h, nm] of D.brec) if (nm.toUpperCase() === up) return h; return null; };
+  if (pEnts.length) lays.push({ ents: pEnts, h: activeH });
+  for (const [key, blk] of D.blocks) if (/^\*PAPER_SPACE\d+$/.test(key) && blk.ents.length) lays.push({ ents: blk.ents, h: blk.owner || handleOf(key) });
+  lays.forEach((l, i) => { const info = l.h && D.layouts.get(l.h); l.name = (info && info.name) || 'Layout' + (i + 1); l.ord = info ? info.ord : 100 + i; });
+  lays.sort((a, b) => a.ord - b.ord);
+  for (const l of lays) { SP = mkSpace(l.name, 'paper'); const before = F.total; list(l.ents, ctx0); F.total = before; finalize(SP); if (SP.batches.length || SP.viewports.length) F.spaces.push(SP); }
+  return F;
+}
+
+function loadDxfText(text, name) {
+  const D = parseDxf(text);
+  const F = buildDrawing(D, name);
+  gc = gv = null;
+  return F;
+}
+
+/* ============================== app state & UI ============================== */
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), g = cv.getContext('2d');
+let dpr = 1, cw = 1, ch = 1, raf = 0, seq = 0;
+const state = { files: [], cur: null, dark: true, tool: 'pan', lw: false, mpts: [], mhover: null, sel: null };
+try { const s = JSON.parse(localStorage.getItem('dxfv.ui') || '{}'); if (s.dark === false) state.dark = false; if (s.lw) state.lw = true; } catch {}
+const saveUI = () => { try { localStorage.setItem('dxfv.ui', JSON.stringify({ dark: state.dark, lw: state.lw })); } catch {} };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tick = () => new Promise(r => { let d = false; const go = () => { if (!d) { d = true; setTimeout(r, 0); } }; requestAnimationFrame(go); setTimeout(go, 60); });
+const curF = () => state.files.find(f => f.id === state.cur) || null;
+const fmt = (v, d = 4) => Number.isFinite(v) ? (+v.toFixed(d)).toLocaleString(undefined, { maximumFractionDigits: d }) : '—';
+let toastT = 0;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 4200); }
+function busy(msg) { const b = $('#busy'); b.hidden = !msg; if (msg) b.querySelector('span').textContent = msg; }
+
+const ICON = {
+  up: '<svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>', down: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+  x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>', target: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5"/></svg>'
+};
+
+/* ---------- visibility & extents ---------- */
+function visFn(f, frozen) {
+  const L = f.F.layers;
+  return b => {
+    const l = L.get(b.lay); if (l && !l.on) return false;
+    for (const a of b.anc) { const x = L.get(a); if (x && !x.on) return false; }
+    if (frozen && frozen.size) { if (frozen.has(b.lay)) return false; for (const a of b.anc) if (frozen.has(a)) return false; }
+    return true;
+  };
+}
+function visibleBB(f, si) {
+  const sp = f.F.spaces[si], vis = visFn(f), bb = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const b of sp.batches) if (vis(b)) grow(bb, b.bb[0], b.bb[1], b.bb[2], b.bb[3]);
+  for (const vp of sp.viewports) grow(bb, vp.cx - vp.w / 2, vp.cy - vp.h / 2, vp.cx + vp.w / 2, vp.cy + vp.h / 2);
+  return bb[0] <= bb[2] ? bb : null;
+}
+function fitTo(bb) {
+  if (!bb) bb = [-50, -50, 50, 50];
+  const w = Math.max(bb[2] - bb[0], 1e-9), h = Math.max(bb[3] - bb[1], 1e-9);
+  let k = Math.min(cw / w, ch / h) * 0.92; if (!(k > 0 && isFinite(k))) k = 1;
+  if (bb[2] - bb[0] < 1e-9 && bb[3] - bb[1] < 1e-9) k = 1;
+  return { cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, k };
+}
+const view = f => f.views[f.si] || (f.views[f.si] = fitTo(visibleBB(f, f.si) || f.F.spaces[f.si].bb));
+const vpM = vp => { const s = vp.h / vp.vh; return mul(tr(vp.cx, vp.cy), mul(rot(-vp.tw), mul(scl(s, s), tr(-vp.vcx, -vp.vcy)))); };
+const vpCull = vp => { if (vp.tw) return null; const s = vp.h / vp.vh; return [vp.vcx - vp.w / 2 / s, vp.vcy - vp.h / 2 / s, vp.vcx + vp.w / 2 / s, vp.vcy + vp.h / 2 / s]; };
+
+/* ---------- canvas rendering ---------- */
+const cssCache = new Map();
+function css(col) {
+  if (col === -1) return state.dark ? '#ffffff' : '#000000';
+  const key = col * 2 + (state.dark ? 1 : 0);
+  let s = cssCache.get(key);
+  if (!s) { const l = lum(col); s = !state.dark && l > 0.9 ? '#000000' : !state.dark && l > 0.5 ? darken(col, 0.5 / l) : state.dark && l < 0.08 ? '#ffffff' : hex(col); cssCache.set(key, s); }
+  return s;
+}
+const lwPx = b => state.lw && b.lw > 0 ? Math.max(1, b.lw / 100 * 3.78 * 1.2) : 1;
+function lpath(b) {
+  if (!b.path) {
+    const P = new Path2D(), ox = b.o[0], oy = b.o[1];
+    for (let i = 0; i < b.lines.length; i++) {
+      const a = b.lines[i];
+      if (b.seg[i]) for (let k = 0; k + 3 < a.length; k += 4) { P.moveTo(a[k] - ox, a[k + 1] - oy); P.lineTo(a[k + 2] - ox, a[k + 3] - oy); }
+      else { P.moveTo(a[0] - ox, a[1] - oy); for (let k = 2; k < a.length; k += 2) P.lineTo(a[k] - ox, a[k + 1] - oy); }
+    }
+    b.path = P;
+  }
+  return b.path;
+}
+function fpath(b) {
+  if (!b.fpath) {
+    const P = new Path2D(), ox = b.o[0], oy = b.o[1];
+    for (const rings of b.fills) for (const a of rings) { P.moveTo(a[0] - ox, a[1] - oy); for (let k = 2; k < a.length; k += 2) P.lineTo(a[k] - ox, a[k + 1] - oy); P.closePath(); }
+    b.fpath = P;
+  }
+  return b.fpath;
+}
+const NODASH = [];
+function drawSpace(sp, S, vis, vr) {
+  const k = Math.sqrt(Math.abs(S[0] * S[3] - S[1] * S[2]));
+  const bs = sp.batches.filter(b => vis(b) && (!vr || hit(b.bb, vr)));
+  if (!bs.length) return;
+  const M = mul(S, tr(sp.origin[0], sp.origin[1]));
+  g.setTransform(M[0], M[1], M[2], M[3], M[4], M[5]);
+  for (const b of bs) if (b.fills.length) { g.fillStyle = css(b.col); g.fill(fpath(b), 'evenodd'); }
+  g.lineJoin = 'round';
+  for (const b of bs) if (b.lines.length) {
+    g.strokeStyle = css(b.col); g.lineWidth = lwPx(b) * dpr / k;
+    if (b.dash && b.dashLen * k > 4 * dpr) { g.setLineDash(b.dash); g.lineCap = 'round'; } else { g.setLineDash(NODASH); g.lineCap = 'butt'; }
+    g.stroke(lpath(b));
+  }
+  g.setLineDash(NODASH);
+  g.font = '100px Arial, Helvetica, sans-serif'; g.textBaseline = 'alphabetic';
+  for (const b of bs) if (b.texts.length) {
+    g.fillStyle = css(b.col);
+    for (const t of b.texts) {
+      if (vr && !hit(t.bb, vr)) continue;
+      const m = t.m; if (k * Math.hypot(m[2], m[3]) < 3 * dpr) continue;
+      const Q = mul(S, m); g.setTransform(Q[0] / 100, Q[1] / 100, -Q[2] / 100, -Q[3] / 100, Q[4], Q[5]); g.fillText(t.s, 0, 0);
+    }
+  }
+}
+function draw() {
+  raf = 0;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = state.dark ? '#000' : '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+  const f = curF(); if (!f) return;
+  const sp = f.F.spaces[f.si], v = view(f);
+  const S = [v.k * dpr, 0, 0, -v.k * dpr, (cw / 2 - v.cx * v.k) * dpr, (ch / 2 + v.cy * v.k) * dpr];
+  const vr = [v.cx - cw / 2 / v.k, v.cy - ch / 2 / v.k, v.cx + cw / 2 / v.k, v.cy + ch / 2 / v.k];
+  drawSpace(sp, S, visFn(f), vr);
+  for (const vp of sp.viewports) {
+    g.save(); g.setTransform(S[0], S[1], S[2], S[3], S[4], S[5]);
+    g.beginPath(); g.rect(vp.cx - vp.w / 2, vp.cy - vp.h / 2, vp.w, vp.h);
+    g.lineWidth = 1 / v.k; g.strokeStyle = 'rgba(128,128,128,.55)'; g.setLineDash([4 / v.k, 3 / v.k]); g.stroke(); g.setLineDash(NODASH); g.clip();
+    drawSpace(f.F.spaces[0], mul(S, vpM(vp)), visFn(f, vp.frozen), vpCull(vp));
+    g.restore();
+  }
+  // overlays in device pixels
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  const D = (x, y) => [S[0] * x + S[4], S[3] * y + S[5]];
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1d9bf0';
+  const s = state.sel;
+  if (s && s.f === f && s.si === f.si) {
+    g.strokeStyle = accent; g.fillStyle = accent; g.lineWidth = 2.5 * dpr; g.lineJoin = 'round'; g.lineCap = 'round';
+    if (s.kind === 'line') {
+      const a = s.b.lines[s.i]; g.beginPath();
+      if (s.b.seg[s.i]) for (let q = 0; q + 3 < a.length; q += 4) { g.moveTo(...D(a[q], a[q + 1])); g.lineTo(...D(a[q + 2], a[q + 3])); }
+      else { g.moveTo(...D(a[0], a[1])); for (let q = 2; q < a.length; q += 2) g.lineTo(...D(a[q], a[q + 1])); }
+      g.stroke();
+    } else {
+      const bb = s.kind === 'text' ? s.t.bb : s.fill.bb, [x0, y0] = D(bb[0], bb[3]), [x1, y1] = D(bb[2], bb[1]);
+      g.setLineDash([5 * dpr, 4 * dpr]); g.strokeRect(x0 - 3 * dpr, y0 - 3 * dpr, x1 - x0 + 6 * dpr, y1 - y0 + 6 * dpr); g.setLineDash(NODASH);
+    }
+  }
+  if (state.tool === 'measure') {
+    const pts = state.mpts.slice(); if (pts.length === 1 && state.mhover) pts.push(state.mhover.p);
+    g.strokeStyle = accent; g.fillStyle = accent; g.lineWidth = 1.5 * dpr;
+    if (pts.length === 2) { g.beginPath(); g.moveTo(...D(...pts[0])); g.lineTo(...D(...pts[1])); g.stroke(); }
+    for (const p of pts) { const [x, y] = D(...p); g.beginPath(); g.arc(x, y, 3.5 * dpr, 0, TAU); g.fill(); }
+    if (state.mhover && state.mhover.snap) { const [x, y] = D(...state.mhover.p), r = 6 * dpr; g.lineWidth = 1.5 * dpr; g.strokeRect(x - r, y - r, 2 * r, 2 * r); }
+  }
+}
+const redraw = () => { if (!raf) raf = requestAnimationFrame(draw); };
+function resize() {
+  const r = cv.getBoundingClientRect(); dpr = window.devicePixelRatio || 1;
+  cw = Math.max(1, r.width); ch = Math.max(1, r.height);
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); redraw();
+}
+new ResizeObserver(resize).observe(cv);
+
+/* ---------- picking & snapping ---------- */
+function toWorld(f, sx, sy) { const v = view(f); return [v.cx + (sx - cw / 2) / v.k, v.cy - (sy - ch / 2) / v.k]; }
+function segD2(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, l = dx * dx + dy * dy;
+  let t = l ? ((px - x1) * dx + (py - y1) * dy) / l : 0; t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const ex = x1 + t * dx - px, ey = y1 + t * dy - py; return ex * ex + ey * ey;
+}
+function inRings(rings, x, y) {
+  let inside = false;
+  for (const a of rings) for (let i = 0, j = a.length - 2; i < a.length; j = i, i += 2)
+    if ((a[i + 1] > y) !== (a[j + 1] > y) && x < (a[j] - a[i]) * (y - a[i + 1]) / (a[j + 1] - a[i + 1]) + a[i]) inside = !inside;
+  return inside;
+}
+function pick(f, sx, sy) {
+  const sp = f.F.spaces[f.si], v = view(f), [wx, wy] = toWorld(f, sx, sy), tol = 6 / v.k, vis = visFn(f);
+  const near = bb => wx >= bb[0] - tol && wx <= bb[2] + tol && wy >= bb[1] - tol && wy <= bb[3] + tol;
+  let best = null, bd = tol * tol;
+  for (const b of sp.batches) {
+    if (!vis(b) || !near(b.bb)) continue;
+    for (let i = 0; i < b.lines.length; i++) {
+      const q = i * 4; if (wx < b.lbb[q] - tol || wx > b.lbb[q + 2] + tol || wy < b.lbb[q + 1] - tol || wy > b.lbb[q + 3] + tol) continue;
+      const a = b.lines[i], step = b.seg[i] ? 4 : 2;
+      for (let k = 0; k + 3 < a.length; k += step) { const d = segD2(wx, wy, a[k], a[k + 1], a[k + 2], a[k + 3]); if (d < bd) { bd = d; best = { kind: 'line', b, i }; } }
+    }
+  }
+  if (!best) for (const b of sp.batches) { if (!vis(b) || !near(b.bb)) continue; for (const t of b.texts) if (wx >= t.bb[0] && wx <= t.bb[2] && wy >= t.bb[1] && wy <= t.bb[3]) best = { kind: 'text', b, t }; }
+  if (!best) for (const b of sp.batches) { if (!vis(b) || !near(b.bb)) continue; for (const fl of b.fills) if (hit(fl.bb, [wx, wy, wx, wy]) && inRings(fl, wx, wy)) best = { kind: 'fill', b, fill: fl }; }
+  return best && Object.assign(best, { f, si: f.si });
+}
+function snap(f, sx, sy) {
+  const sp = f.F.spaces[f.si], v = view(f), [wx, wy] = toWorld(f, sx, sy), tol = 10 / v.k, vis = visFn(f);
+  let best = null, bd = tol * tol;
+  for (const b of sp.batches) {
+    if (!vis(b) || wx < b.bb[0] - tol || wx > b.bb[2] + tol || wy < b.bb[1] - tol || wy > b.bb[3] + tol) continue;
+    for (let i = 0; i < b.lines.length; i++) {
+      const q = i * 4; if (wx < b.lbb[q] - tol || wx > b.lbb[q + 2] + tol || wy < b.lbb[q + 1] - tol || wy > b.lbb[q + 3] + tol) continue;
+      const a = b.lines[i];
+      for (let k = 0; k < a.length; k += 2) { const dx = a[k] - wx, dy = a[k + 1] - wy, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = [a[k], a[k + 1]]; } }
+    }
+  }
+  return best ? { p: best, snap: true } : { p: [wx, wy], snap: false };
+}
+
+/* ---------- info + measure cards ---------- */
+const uName = f => UNITS[f.F.units] || '';
+const ftIn = inches => { const neg = inches < 0; inches = Math.abs(inches); let ft = Math.floor(inches / 12), i = inches - ft * 12; if (i > 11.995) { ft++; i = 0; } return (neg ? '-' : '') + `${ft}'-${(+i.toFixed(2))}"`; };
+function lenStr(f, d) {
+  const u = uName(f); let s = fmt(d) + (u ? ' ' + u : '');
+  if (f.F.units === 1) s += ` (${ftIn(d)})`; else if (f.F.units === 2) s += ` (${ftIn(d * 12)})`;
+  return s;
+}
+function colorName(col) { return col === -1 ? 'White / black (7)' : hex(col).toUpperCase(); }
+function showInfo() {
+  const el = $('#info'), s = state.sel, f = curF();
+  if (!s || !f || s.f !== f || s.si !== f.si) { el.hidden = true; return; }
+  const b = s.b, L = f.F.layers.get(b.lay);
+  let type, extra = '', blk = '';
+  if (s.kind === 'line') {
+    const a = b.lines[s.i]; type = b.types[s.i]; blk = b.blks[s.i]; let len = 0;
+    if (b.seg[s.i]) for (let k = 0; k + 3 < a.length; k += 4) len += Math.hypot(a[k + 2] - a[k], a[k + 3] - a[k + 1]);
+    else for (let k = 2; k < a.length; k += 2) len += Math.hypot(a[k] - a[k - 2], a[k + 1] - a[k - 1]);
+    extra = `<dt>Length</dt><dd>${esc(lenStr(f, len))}</dd>`;
+    if (/LINE$/.test(type) && a.length === 4) extra += `<dt>Angle</dt><dd>${fmt((Math.atan2(a[3] - a[1], a[2] - a[0]) / DEG + 360) % 360, 2)}°</dd>`;
+  } else if (s.kind === 'text') { type = s.t.type; blk = s.t.blk; extra = `<dt>Text</dt><dd>${esc(s.t.s)}</dd>`; }
+  else { type = s.fill.type; blk = s.fill.blk; extra = `<dt>Fill</dt><dd>Solid</dd>`; }
+  el.innerHTML = `<h3>${esc(type)}<button class="mini x" id="infoX" title="Close">${ICON.x}</button></h3><dl>
+    <dt>Layer</dt><dd><span class="sw" style="display:inline-block;vertical-align:-1px;margin-right:6px;background:${css(L ? L.rgb : -1)}"></span>${esc(L ? L.name : b.lay)}</dd>
+    ${blk ? `<dt>Block</dt><dd>${esc(blk)}</dd>` : ''}${b.anc.length && b.anc[b.anc.length - 1] !== b.lay ? `<dt>Insert layer</dt><dd>${esc(b.anc.map(a => (f.F.layers.get(a) || { name: a }).name).join(' › '))}</dd>` : ''}
+    <dt>Color</dt><dd>${colorName(b.col)}</dd><dt>Linetype</dt><dd>${esc(b.lt || 'Continuous')}</dd>
+    <dt>Lineweight</dt><dd>${b.lw >= 0 ? (b.lw / 100).toFixed(2) + ' mm' : 'Default'}</dd>${extra}</dl>
+    <div class="row"><button class="btn" id="infoHide">Hide layer</button><button class="btn" id="infoOnly">Only this layer</button></div>`;
+  el.hidden = false;
+  $('#infoX').onclick = () => { state.sel = null; showInfo(); redraw(); };
+  $('#infoHide').onclick = () => { if (L) { L.on = false; afterLayers(); } };
+  $('#infoOnly').onclick = () => { for (const l of f.F.layers.values()) l.on = l === L || b.anc.includes(l.key); afterLayers(); };
+}
+function showMeasure() {
+  const el = $('#mbox'), f = curF();
+  if (state.tool !== 'measure' || !f) { el.hidden = true; return; }
+  const pts = state.mpts.slice(); if (pts.length === 1 && state.mhover) pts.push(state.mhover.p);
+  let body = '<div class="muted">Click two points. Snaps to vertices. Esc to finish.</div>';
+  if (pts.length === 2) {
+    const dx = pts[1][0] - pts[0][0], dy = pts[1][1] - pts[0][1], d = Math.hypot(dx, dy);
+    body = `<dl><dt>Distance</dt><dd><b>${esc(lenStr(f, d))}</b></dd><dt>ΔX</dt><dd>${fmt(dx)}</dd><dt>ΔY</dt><dd>${fmt(dy)}</dd><dt>Angle</dt><dd>${fmt((Math.atan2(dy, dx) / DEG + 360) % 360, 2)}°</dd></dl>`;
+  }
+  el.innerHTML = `<h3>Measure</h3>${body}`; el.hidden = false;
+}
+
+/* ---------- sidebar ---------- */
+function renderFiles() {
+  const el = $('#fileList');
+  $('#fileCount').textContent = state.files.length ? state.files.length : '';
+  if (!state.files.length) { el.innerHTML = '<div class="empty-note">No drawings yet.</div>'; return; }
+  el.innerHTML = state.files.map((f, i) => {
+    const lays = f.F.spaces.length - 1;
+    const meta = `${f.F.total.toLocaleString()} objects · ${f.F.layers.size} layers${lays ? ` · ${lays} layout${lays > 1 ? 's' : ''}` : ''}`;
+    return `<div class="file${f.id === state.cur ? ' active' : ''}" data-id="${f.id}">
+      <input type="checkbox" class="inc" title="Include in PDF" ${f.include ? 'checked' : ''}>
+      <div class="fmain"><div class="fname" title="${esc(f.name)}">${esc(f.name)}</div><div class="fmeta">${meta}</div></div>
+      <div class="facts"><button class="mini" data-act="up" title="Move up" ${i ? '' : 'disabled'}>${ICON.up}</button><button class="mini" data-act="down" title="Move down" ${i < state.files.length - 1 ? '' : 'disabled'}>${ICON.down}</button><button class="mini" data-act="rm" title="Remove">${ICON.x}</button></div></div>`;
+  }).join('');
+}
+$('#fileList').addEventListener('click', e => {
+  const row = e.target.closest('.file'); if (!row) return;
+  const id = +row.dataset.id, i = state.files.findIndex(f => f.id === id), f = state.files[i];
+  if (e.target.classList.contains('inc')) { f.include = e.target.checked; return; }
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'up' && i > 0) [state.files[i - 1], state.files[i]] = [state.files[i], state.files[i - 1]];
+  else if (act === 'down' && i < state.files.length - 1) [state.files[i + 1], state.files[i]] = [state.files[i], state.files[i + 1]];
+  else if (act === 'rm') { state.files.splice(i, 1); if (state.cur === id) state.cur = state.files[Math.min(i, state.files.length - 1)]?.id ?? null; if (state.sel && state.sel.f === f) state.sel = null; }
+  else { if (state.cur !== id) { state.cur = id; state.sel = null; state.mpts = []; } }
+  refresh();
+});
+function renderLayers() {
+  const el = $('#layerList'), f = curF();
+  if (!f) { el.innerHTML = ''; $('#layerCount').textContent = ''; return; }
+  const q = $('#layerSearch').value.trim().toLowerCase();
+  const all = [...f.F.layers.values()].filter(l => l.n > 0 || l.key !== '0').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+  const ls = q ? all.filter(l => l.name.toLowerCase().includes(q)) : all;
+  $('#layerCount').textContent = `${all.filter(l => l.on).length}/${all.length}`;
+  el.innerHTML = ls.map(l => `<label class="layer${l.on ? '' : ' off'}" data-k="${esc(l.key)}" title="${esc(l.name)}">
+    <input type="checkbox" ${l.on ? 'checked' : ''}><span class="sw" style="background:${css(l.rgb)}"></span><span class="lname">${esc(l.name)}</span>
+    <span class="lcount">${l.n ? l.n.toLocaleString() : ''}</span><span class="lacts"><button class="chip" data-act="only" title="Show only this layer">Only</button><button class="mini" data-act="zoom" title="Zoom to layer">${ICON.target}</button></span></label>`).join('')
+    || '<div class="empty-note">No matching layers.</div>';
+}
+$('#layerList').addEventListener('click', e => {
+  const row = e.target.closest('.layer'), f = curF(); if (!row || !f) return;
+  const L = f.F.layers.get(row.dataset.k), act = e.target.closest('[data-act]')?.dataset.act;
+  if (act) {
+    e.preventDefault();
+    if (act === 'only') { for (const l of f.F.layers.values()) l.on = l === L; afterLayers(); }
+    else if (act === 'zoom') {
+      const sp = f.F.spaces[f.si], bb = [Infinity, Infinity, -Infinity, -Infinity];
+      for (const b of sp.batches) if (b.lay === L.key) grow(bb, b.bb[0], b.bb[1], b.bb[2], b.bb[3]);
+      if (bb[0] <= bb[2]) { if (!L.on) { L.on = true; afterLayers(); } f.views[f.si] = fitTo(bb); redraw(); updateStatus(); }
+      else toast(`Nothing on ${L.name} in this tab`);
+    }
+  }
+});
+$('#layerList').addEventListener('change', e => {
+  const row = e.target.closest('.layer'), f = curF(); if (!row || !f) return;
+  f.F.layers.get(row.dataset.k).on = e.target.checked; afterLayers();
+});
+$('#layerSearch').addEventListener('input', renderLayers);
+$('#allOn').onclick = () => { const f = curF(); if (f) { for (const l of f.F.layers.values()) l.on = true; afterLayers(); } };
+$('#allOff').onclick = () => { const f = curF(); if (f) { for (const l of f.F.layers.values()) l.on = false; afterLayers(); } };
+function afterLayers() {
+  const s = state.sel; if (s && s.f && !visFn(s.f)(s.b)) state.sel = null;
+  renderLayers(); showInfo(); redraw();
+}
+function renderTabs() {
+  const el = $('#tabs'), f = curF();
+  if (!f || f.F.spaces.length < 2) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = f.F.spaces.map((s, i) => `<button class="tab${i === f.si ? ' on' : ''}" data-i="${i}">${esc(s.name)}</button>`).join('');
+}
+$('#tabs').addEventListener('click', e => {
+  const t = e.target.closest('.tab'), f = curF(); if (!t || !f) return;
+  f.si = +t.dataset.i; state.sel = null; state.mpts = []; refresh();
+});
+function updateStatus() {
+  const f = curF();
+  $('#units').textContent = f ? 'Units: ' + (uName(f) || 'unitless') : '';
+  if (!f) { $('#stats').textContent = ''; $('#zoom').textContent = ''; $('#coords').textContent = 'x —  y —'; return; }
+  const sk = Object.entries(f.F.skipped).map(([t, n]) => `${t} ×${n}`).join(', ');
+  const st = $('#stats');
+  st.textContent = `${f.F.spaces[f.si].name} · ${f.F.total.toLocaleString()} objects` + (sk ? ` · not drawn: ${sk}` : '') + (f.F.truncated ? ' · very large file, partially drawn' : '');
+  st.title = sk ? 'These entity types are not rendered: ' + sk : '';
+}
+function refresh() {
+  const has = state.files.length > 0;
+  $('#empty').hidden = has; $('#pdfBtn').disabled = !has;
+  renderFiles(); renderLayers(); renderTabs(); updateStatus(); showInfo(); showMeasure(); redraw();
+}
+
+/* ---------- loading files ---------- */
+async function addFiles(list) {
+  const arr = [...list].filter(f => /\.dxf$/i.test(f.name));
+  const other = [...list].length - arr.length;
+  if (other) toast(other === 1 && /\.dwg$/i.test([...list].find(f => !/\.dxf$/i.test(f.name)).name) ? 'DWG files aren’t supported — export them as DXF.' : 'Only .dxf files can be opened.');
+  let first = null;
+  for (const file of arr) {
+    busy(`Opening ${file.name}…`); await tick();
+    try {
+      const F = loadDxfText(decodeDxf(await file.arrayBuffer()), file.name);
+      const f = addDrawing(F); if (!first) first = f;
+    } catch (err) { console.error(err); toast(`${file.name}: ${err.message || 'could not be read'}`); }
+  }
+  busy(null);
+  if (first) { state.cur = first.id; state.sel = null; state.mpts = []; }
+  refresh();
+}
+function addDrawing(F) {
+  const f = { id: ++seq, name: F.name, F, si: 0, views: [], include: true };
+  state.files.push(f);
+  if (!F.spaces[0].batches.length && F.spaces.length > 1) f.si = 1;
+  return f;
+}
+const fileInput = $('#fileInput');
+fileInput.onchange = () => { addFiles(fileInput.files); fileInput.value = ''; };
+$('#openBtn').onclick = $('#openBtn2').onclick = () => fileInput.click();
+$('#sampleBtn').onclick = () => {
+  const a = addDrawing(loadDxfText(sampleFloorPlan(), 'sample-floor-plan.dxf'));
+  addDrawing(loadDxfText(sampleBracket(), 'sample-bracket.dxf'));
+  state.cur = a.id; refresh();
+};
+let dragDepth = 0;
+const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+addEventListener('dragenter', e => { if (hasFiles(e)) { dragDepth++; $('#dropHint').hidden = false; } });
+addEventListener('dragleave', e => { if (hasFiles(e) && --dragDepth <= 0) { dragDepth = 0; $('#dropHint').hidden = true; } });
+addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('#dropHint').hidden = true; addFiles(e.dataTransfer.files); });
+
+/* ---------- navigation ---------- */
+function zoomAt(sx, sy, factor) {
+  const f = curF(); if (!f) return;
+  const v = view(f), [wx, wy] = toWorld(f, sx, sy);
+  v.k = Math.min(1e12, Math.max(1e-12, v.k * factor));
+  v.cx = wx - (sx - cw / 2) / v.k; v.cy = wy + (sy - ch / 2) / v.k;
+  redraw(); updateZoom();
+}
+const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cw / (r.width || 1), (e.clientY - r.top) * ch / (r.height || 1)]; };
+function updateZoom() { const f = curF(); if (!f) return; const v = view(f), fit = fitTo(visibleBB(f, f.si) || f.F.spaces[f.si].bb); $('#zoom').textContent = `Zoom ${fmt(v.k / fit.k * 100, 0)}%`; }
+function fit() { const f = curF(); if (!f) return; f.views[f.si] = fitTo(visibleBB(f, f.si) || f.F.spaces[f.si].bb); redraw(); updateZoom(); }
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+  zoomAt(...pos(e), Math.exp(-d * (e.ctrlKey ? 0.01 : 0.0015)));
+}, { passive: false });
+const ptrs = new Map(); let drag = null, pinch = null;
+cv.addEventListener('pointerdown', e => {
+  try { cv.setPointerCapture(e.pointerId); } catch {} ptrs.set(e.pointerId, pos(e));
+  const f = curF(); if (!f) return;
+  if (ptrs.size === 2) { drag = null; pinch = null; return; }
+  const v = view(f); const [px, py] = pos(e); drag = { x: px, y: py, cx: v.cx, cy: v.cy, moved: false, btn: e.button };
+});
+cv.addEventListener('pointermove', e => {
+  const f = curF(); if (!f) return;
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, pos(e));
+  const [wx, wy] = toWorld(f, ...pos(e)), v = view(f), dec = Math.max(0, Math.min(6, Math.ceil(Math.log10(v.k)) + 1));
+  $('#coords').textContent = `x ${fmt(wx, dec)}   y ${fmt(wy, dec)}`;
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    if (pinch) { v.cx -= (mx - pinch.mx) / v.k; v.cy += (my - pinch.my) / v.k; zoomAt(mx, my, d / pinch.d); }
+    pinch = { d, mx, my }; return;
+  }
+  if (drag) {
+    const [px, py] = pos(e), dx = px - drag.x, dy = py - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) > 4) { drag.moved = true; cv.classList.add('dragging'); }
+    if (drag.moved) { v.cx = drag.cx - dx / v.k; v.cy = drag.cy + dy / v.k; redraw(); }
+  } else if (state.tool === 'measure') { state.mhover = snap(f, ...pos(e)); showMeasure(); redraw(); }
+});
+const endPtr = e => {
+  ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null;
+  const f = curF(); cv.classList.remove('dragging');
+  if (drag && !drag.moved && drag.btn === 0 && f && e.type === 'pointerup') {
+    if (state.tool === 'measure') {
+      if (state.mpts.length >= 2) state.mpts = [];
+      state.mpts.push(snap(f, ...pos(e)).p); showMeasure();
+    } else { state.sel = pick(f, ...pos(e)); showInfo(); }
+    redraw();
+  }
+  drag = null;
+};
+cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('dblclick', e => { if (state.tool !== 'measure' && !state.sel) fit(); });
+cv.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });
+cv.addEventListener('mouseleave', () => { $('#coords').textContent = 'x —  y —'; });
+
+function setTool(t) {
+  state.tool = state.tool === t ? 'pan' : t; state.mpts = []; state.mhover = null;
+  $('#measureBtn').classList.toggle('on', state.tool === 'measure'); cv.classList.toggle('measure', state.tool === 'measure');
+  showMeasure(); redraw();
+}
+function setDark(d) { state.dark = d; $('#stage').style.background = d ? '#000' : '#fff'; $('#bgBtn').classList.toggle('on', !d); saveUI(); renderLayers(); showInfo(); redraw(); }
+function setLw(on) { state.lw = on; $('#lwBtn').classList.toggle('on', on); saveUI(); redraw(); }
+$('#fitBtn').onclick = fit;
+$('#zinBtn').onclick = () => zoomAt(cw / 2, ch / 2, 1.5);
+$('#zoutBtn').onclick = () => zoomAt(cw / 2, ch / 2, 1 / 1.5);
+$('#measureBtn').onclick = () => setTool('measure');
+$('#bgBtn').onclick = () => setDark(!state.dark);
+$('#lwBtn').onclick = () => setLw(!state.lw);
+$('#sideBtn').onclick = () => {
+  if (matchMedia('(max-width:760px)').matches) document.body.classList.toggle('side'); else document.body.classList.toggle('noside');
+};
+addEventListener('keydown', e => {
+  if (e.target.closest('input,select,textarea') || e.ctrlKey || e.metaKey || e.altKey || $('#pdfDlg').open) return;
+  const k = e.key.toLowerCase();
+  if (k === 'f') fit(); else if (k === 'm') setTool('measure'); else if (k === 'b') setDark(!state.dark); else if (k === 'w') setLw(!state.lw);
+  else if (k === '+' || k === '=') zoomAt(cw / 2, ch / 2, 1.5); else if (k === '-' || k === '_') zoomAt(cw / 2, ch / 2, 1 / 1.5);
+  else if (k === 'escape') { if (state.tool === 'measure' && state.mpts.length) { state.mpts = []; showMeasure(); } else if (state.tool === 'measure') setTool('measure'); else { state.sel = null; showInfo(); } redraw(); }
+  else return;
+  e.preventDefault();
+});
+setDark(state.dark); setLw(state.lw);
+
+/* ============================== PDF export ============================== */
+const PAPER = { letter: [612, 792], legal: [612, 1008], tabloid: [792, 1224], archC: [1296, 1728], archD: [1728, 2592], archE: [2592, 3456],
+  a4: [595.28, 841.89], a3: [841.89, 1190.55], a2: [1190.55, 1683.78], a1: [1683.78, 2383.94], a0: [2383.94, 3370.39] };
+const r2 = v => { v = Math.round(v * 100) / 100; return v > 1e6 ? 1e6 : v < -1e6 ? -1e6 : v; };
+const r4 = v => Math.round(v * 1e4) / 1e4;
+const WIN = { 0x20ac: 0x80, 0x201a: 0x82, 0x192: 0x83, 0x201e: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x2c6: 0x88, 0x2030: 0x89, 0x160: 0x8a, 0x2039: 0x8b,
+  0x152: 0x8c, 0x17d: 0x8e, 0x2018: 0x91, 0x2019: 0x92, 0x201c: 0x93, 0x201d: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97, 0x2dc: 0x98, 0x2122: 0x99,
+  0x161: 0x9a, 0x203a: 0x9b, 0x153: 0x9c, 0x17e: 0x9e, 0x178: 0x9f, 0x2205: 0xd8, 0x2300: 0xd8, 0x2212: 0x2d };
+function pdfStr(s) {
+  let o = '';
+  for (const ch of s) {
+    let c = ch.codePointAt(0);
+    if (c === 40 || c === 41 || c === 92) o += '\\' + ch;
+    else if (c >= 32 && c < 127) o += ch;
+    else { c = c >= 0xa0 && c <= 0xff ? c : WIN[c] || (c === 9 ? 32 : 63); o += '\\' + c.toString(8).padStart(3, '0'); }
+  }
+  return o;
+}
+const pdfU16 = s => '<FEFF' + [...s].map(ch => { const c = ch.codePointAt(0); return c > 0xffff ? '003F' : c.toString(16).padStart(4, '0'); }).join('').toUpperCase() + '>';
+function pdfCol(col, mode, fill) {
+  let r = 0, gg = 0, b = 0;
+  if (col !== -1 && mode !== 'mono') {
+    r = (col >> 16 & 255) / 255; gg = (col >> 8 & 255) / 255; b = (col & 255) / 255;
+    const l = .299 * r + .587 * gg + .114 * b;
+    if (mode === 'gray') { r = gg = b = Math.min(.8, l * .8); } else if (l > .9) r = gg = b = 0; else if (l > .5) { const k = .5 / l; r *= k; gg *= k; b *= k; }
+  }
+  return `${r4(r)} ${r4(gg)} ${r4(b)} ${fill ? 'rg' : 'RG'}`;
+}
+function pdfLw(b, o) { const mm = o.lw === 'fine' ? .1 : o.lw === 'bold' ? .35 : b.lw > 0 ? Math.max(.05, b.lw / 100) : .18; return r2(mm * MM) || .1; }
+function pdfSpace(out, sp, P, cull, vis, o) {
+  const s = Math.sqrt(Math.abs(P[0] * P[3] - P[1] * P[2]));
+  const X = (x, y) => r2(P[0] * x + P[2] * y + P[4]) + ' ' + r2(P[1] * x + P[3] * y + P[5]);
+  const bs = sp.batches.filter(b => vis(b) && (!cull || hit(b.bb, cull)));
+  for (const b of bs) if (b.fills.length) {
+    out.push(pdfCol(b.col, o.color, true));
+    for (const rings of b.fills) {
+      if (cull && !hit(rings.bb, cull)) continue;
+      const parts = [];
+      for (const a of rings) { parts.push(X(a[0], a[1]) + ' m'); for (let k = 2; k < a.length; k += 2) parts.push(X(a[k], a[k + 1]) + ' l'); parts.push('h'); }
+      out.push(parts.join('\n'), 'f*');
+    }
+  }
+  for (const b of bs) if (b.lines.length) {
+    out.push(pdfCol(b.col, o.color, false), pdfLw(b, o) + ' w', b.dash && b.dashLen * s > 2 ? `[${b.dash.map(d => r2(d * s)).join(' ')}] 0 d` : '[] 0 d');
+    let parts = [];
+    for (let i = 0; i < b.lines.length; i++) {
+      if (cull) { const q = i * 4; if (b.lbb[q] > cull[2] || b.lbb[q + 2] < cull[0] || b.lbb[q + 1] > cull[3] || b.lbb[q + 3] < cull[1]) continue; }
+      const a = b.lines[i];
+      if (b.seg[i]) for (let k = 0; k + 3 < a.length; k += 4) parts.push(X(a[k], a[k + 1]) + ' m ' + X(a[k + 2], a[k + 3]) + ' l');
+      else {
+        let prev = X(a[0], a[1]), n = 0; parts.push(prev + ' m');
+        for (let k = 2; k < a.length; k += 2) { const c = X(a[k], a[k + 1]); if (c !== prev) { parts.push(c + ' l'); prev = c; n++; } }
+        if (!n) parts.push(prev + ' l');
+      }
+      if (parts.length > 4000) { out.push(parts.join('\n'), 'S'); parts = []; }
+    }
+    if (parts.length) out.push(parts.join('\n'), 'S');
+  }
+  for (const b of bs) if (b.texts.length) {
+    let started = false;
+    for (const t of b.texts) {
+      if (cull && !hit(t.bb, cull)) continue;
+      const Q = mul(P, t.m); if (Math.hypot(Q[2], Q[3]) < .5) continue;
+      if (!started) { out.push(pdfCol(b.col, o.color, true)); started = true; }
+      out.push(`BT /F1 1 Tf ${r4(Q[0])} ${r4(Q[1])} ${r4(Q[2])} ${r4(Q[3])} ${r2(Q[4])} ${r2(Q[5])} Tm (${pdfStr(t.s)}) Tj ET`);
+    }
+  }
+}
+function pdfPage(f, si, o, idx, total, date) {
+  const sp = f.F.spaces[si];
+  const v = f.views[si];
+  let area = o.area === 'view' && v ? [v.cx - cw / 2 / v.k, v.cy - ch / 2 / v.k, v.cx + cw / 2 / v.k, v.cy + ch / 2 / v.k] : visibleBB(f, si) || sp.bb || [0, 0, 1, 1];
+  const aw = Math.max(area[2] - area[0], 1e-9), ah = Math.max(area[3] - area[1], 1e-9);
+  const pp = PAPER[o.paper] || PAPER.letter, land = o.orient === 'auto' ? aw >= ah : o.orient === 'landscape';
+  const PW = land ? Math.max(...pp) : Math.min(...pp), PH = land ? Math.min(...pp) : Math.max(...pp);
+  const m = Math.max(0, Math.min(+o.margin || 0, 60)) * MM, fh = o.footer ? 16 : 0;
+  const bx = m, by = m + fh, bw = Math.max(20, PW - 2 * m), bh = Math.max(20, PH - 2 * m - fh);
+  let s;
+  if (o.scale === 'fit') s = Math.min(bw / aw, bh / ah);
+  else s = (UNIT_MM[f.F.units] || (o.unitless === 'in' ? 25.4 : 1)) / +o.scale * MM;
+  const cx = (area[0] + area[2]) / 2, cy = (area[1] + area[3]) / 2;
+  const P = [s, 0, 0, s, bx + bw / 2 - cx * s, by + bh / 2 - cy * s];
+  const cull = [cx - bw / 2 / s, cy - bh / 2 / s, cx + bw / 2 / s, cy + bh / 2 / s];
+  const out = ['q', `${r2(bx)} ${r2(by)} ${r2(bw)} ${r2(bh)} re W n`, '1 J 1 j'];
+  pdfSpace(out, sp, P, cull, visFn(f), o);
+  for (const vp of sp.viewports) {
+    const [x0, y0] = ap(P, vp.cx - vp.w / 2, vp.cy - vp.h / 2);
+    out.push('q', `${r2(x0)} ${r2(y0)} ${r2(vp.w * s)} ${r2(vp.h * s)} re W n`);
+    pdfSpace(out, f.F.spaces[0], mul(P, vpM(vp)), vpCull(vp), visFn(f, vp.frozen), o);
+    out.push('Q');
+  }
+  out.push('Q');
+  const title = f.name + (f.F.spaces.length > 1 ? ' — ' + sp.name : '');
+  if (o.footer) {
+    const right = `${date}    ${idx} / ${total}`, rw = emW(right) * 7;
+    let left = title; while (left.length > 4 && emW(left) * 7 > PW - 2 * m - rw - 24) left = left.slice(0, -2);
+    if (left !== title) left = left.slice(0, -1) + '…';
+    out.push(`BT /F1 7 Tf 0.4 g ${r2(m)} ${r2(m + 3)} Td (${pdfStr(left)}) Tj ET`, `BT /F1 7 Tf 0.4 g ${r2(PW - m - rw)} ${r2(m + 3)} Td (${pdfStr(right)}) Tj ET`);
+  }
+  return { w: PW, h: PH, content: out.join('\n'), title };
+}
+async function deflate(u8) {
+  if (typeof CompressionStream === 'undefined') return null;
+  const st = new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate'));
+  return new Uint8Array(await new Response(st).arrayBuffer());
+}
+async function writePdf(pages, docTitle) {
+  const enc = new TextEncoder(), parts = [], offs = []; let pos = 0;
+  const put = x => { const u = typeof x === 'string' ? enc.encode(x) : x; parts.push(u); pos += u.length; };
+  const obj = (id, s) => { offs[id] = pos; put(`${id} 0 obj\n${s}\nendobj\n`); };
+  const n = pages.length, first = 6, total = first + 3 * n, d = new Date(), p2 = x => String(x).padStart(2, '0');
+  put('%PDF-1.4\n'); put(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]));
+  obj(1, '<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R /PageMode /UseOutlines >>');
+  obj(2, `<< /Type /Pages /Kids [${pages.map((_, i) => `${first + 3 * i} 0 R`).join(' ')}] /Count ${n} >>`);
+  obj(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  obj(4, `<< /Type /Outlines /First ${first + 2} 0 R /Last ${first + 3 * (n - 1) + 2} 0 R /Count ${n} >>`);
+  obj(5, `<< /Title ${pdfU16(docTitle)} /Producer (DXF Viewer) /CreationDate (D:${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}) >>`);
+  for (let i = 0; i < n; i++) {
+    const pg = pages[i], id = first + 3 * i;
+    obj(id, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${r2(pg.w)} ${r2(pg.h)}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${id + 1} 0 R >>`);
+    const raw = enc.encode(pg.content), z = await deflate(raw);
+    offs[id + 1] = pos;
+    put(`${id + 1} 0 obj\n<< /Length ${(z || raw).length}${z ? ' /Filter /FlateDecode' : ''} >>\nstream\n`); put(z || raw); put('\nendstream\nendobj\n');
+    obj(id + 2, `<< /Title ${pdfU16(pg.title)} /Parent 4 0 R${i ? ` /Prev ${id - 1} 0 R` : ''}${i < n - 1 ? ` /Next ${id + 5} 0 R` : ''} /Dest [${id} 0 R /Fit] >>`);
+  }
+  const xref = pos;
+  let x = `xref\n0 ${total}\n0000000000 65535 f \n`;
+  for (let id = 1; id < total; id++) x += String(offs[id]).padStart(10, '0') + ' 00000 n \n';
+  put(x + `trailer\n<< /Size ${total} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  const outB = new Uint8Array(pos); let o = 0; for (const u of parts) { outB.set(u, o); o += u.length; }
+  return outB;
+}
+function pdfJobs(o) {
+  const jobs = [];
+  for (const f of state.files) {
+    if (!f.include) continue;
+    const n = f.F.spaces.length, all = [...Array(n).keys()];
+    const sis = o.pages === 'all' ? all : o.pages === 'layouts' ? (n > 1 ? all.slice(1) : [0]) : [f.si];
+    for (const si of sis) jobs.push({ f, si });
+  }
+  return jobs;
+}
+async function buildPdf(o) {
+  const jobs = pdfJobs(o);
+  if (!jobs.length) { toast('Nothing to export — tick at least one drawing.'); return null; }
+  busy(`Building PDF · ${jobs.length} page${jobs.length > 1 ? 's' : ''}…`); await tick();
+  const pages = [], date = new Date().toLocaleDateString();
+  for (let i = 0; i < jobs.length; i++) {
+    pages.push(pdfPage(jobs[i].f, jobs[i].si, o, i + 1, jobs.length, date));
+    if (i % 3 === 2) { busy(`Building PDF · page ${i + 1} of ${jobs.length}…`); await tick(); }
+  }
+  const inc = state.files.filter(f => f.include);
+  const fname = inc.length === 1 ? inc[0].name.replace(/\.dxf$/i, '') + '.pdf' : `drawings-combined-${inc.length}.pdf`;
+  const bytes = await writePdf(pages, fname.replace(/\.pdf$/, ''));
+  busy(null);
+  return { bytes, fname, pages: pages.length };
+}
+function readPdfOpts() { const fd = new FormData($('#pdfForm')); const o = Object.fromEntries(fd.entries()); o.footer = fd.has('footer'); return o; }
+function pdfSummary() {
+  const o = readPdfOpts(), n = pdfJobs(o).length, k = state.files.filter(f => f.include).length;
+  $('#pdfSummary').textContent = `${k} drawing${k === 1 ? '' : 's'} → ${n} page${n === 1 ? '' : 's'}, in the order listed.`;
+  $('#pdfGo').disabled = $('#pdfOpen').disabled = !n;
+}
+$('#pdfBtn').onclick = () => {
+  try { const s = JSON.parse(localStorage.getItem('dxfv.pdf') || 'null'); if (s) for (const [k, v] of Object.entries(s)) { const el = $('#pdfForm').elements[k]; if (el) el.type === 'checkbox' ? el.checked = v : el.value = v; } } catch {}
+  $('#pdfFiles').innerHTML = state.files.map(f => `<label><input type="checkbox" data-id="${f.id}" ${f.include ? 'checked' : ''}><span>${esc(f.name)}</span><em>${f.F.spaces.length > 1 ? esc(f.F.spaces[f.si].name) : 'Model'}</em></label>`).join('');
+  pdfSummary(); $('#pdfDlg').showModal();
+};
+$('#pdfFiles').addEventListener('change', e => { const f = state.files.find(x => x.id === +e.target.dataset.id); if (f) { f.include = e.target.checked; renderFiles(); pdfSummary(); } });
+$('#pdfForm').addEventListener('change', pdfSummary);
+let pdfWin = null;
+$('#pdfOpen').addEventListener('click', () => { pdfWin = window.open('', '_blank'); if (pdfWin) pdfWin.document.write('<title>Building PDF…</title><p style="font:14px system-ui;padding:24px">Building PDF…</p>'); });
+$('#pdfDlg').addEventListener('close', async () => {
+  const mode = $('#pdfDlg').returnValue; $('#pdfDlg').returnValue = '';
+  if (mode !== 'download' && mode !== 'open') return;
+  const o = readPdfOpts();
+  try { localStorage.setItem('dxfv.pdf', JSON.stringify(o)); } catch {}
+  let res;
+  try { res = await buildPdf(o); } catch (err) { console.error(err); busy(null); toast('PDF export failed: ' + err.message); }
+  if (!res) { if (pdfWin) pdfWin.close(); pdfWin = null; return; }
+  const url = URL.createObjectURL(new Blob([res.bytes], { type: 'application/pdf' }));
+  if (mode === 'open' && pdfWin && !pdfWin.closed) pdfWin.location.href = url;
+  else { const a = document.createElement('a'); a.href = url; a.download = res.fname; document.body.appendChild(a); a.click(); a.remove(); }
+  pdfWin = null; setTimeout(() => URL.revokeObjectURL(url), 120000);
+  toast(`PDF ready · ${res.pages} page${res.pages === 1 ? '' : 's'}`);
+});
+
+/* ============================== built-in samples ============================== */
+function dxfOut() {
+  const o = [], g = (...a) => { for (let i = 0; i < a.length; i += 2) o.push(a[i], a[i + 1]); };
+  const E = {
+    g, out: () => o.join('\n'),
+    line: (L, x1, y1, x2, y2, ...x) => g(0, 'LINE', 8, L, ...x, 10, x1, 20, y1, 30, 0, 11, x2, 21, y2, 31, 0),
+    circle: (L, x, y, r, ...x2) => g(0, 'CIRCLE', 8, L, ...x2, 10, x, 20, y, 30, 0, 40, r),
+    arc: (L, x, y, r, a0, a1, ...x2) => g(0, 'ARC', 8, L, ...x2, 10, x, 20, y, 30, 0, 40, r, 50, a0, 51, a1),
+    pl: (L, pts, closed, ...x) => { g(0, 'LWPOLYLINE', 8, L, ...x, 90, pts.length, 70, closed ? 1 : 0); for (const p of pts) { g(10, p[0], 20, p[1]); if (p[2]) g(42, p[2]); } },
+    text: (L, x, y, h, s, ...x2) => g(0, 'TEXT', 8, L, ...x2, 10, x, 20, y, 30, 0, 40, h, 1, s),
+    ctext: (L, x, y, h, s, ...x2) => g(0, 'TEXT', 8, L, ...x2, 10, x, 20, y, 30, 0, 40, h, 1, s, 72, 1, 11, x, 21, y, 31, 0, 73, 2),
+    mtext: (L, x, y, h, w, att, s, ...x2) => g(0, 'MTEXT', 8, L, ...x2, 10, x, 20, y, 30, 0, 40, h, 41, w, 71, att, 1, s),
+    header: (units, lts) => g(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1015', 9, '$INSUNITS', 70, units, 9, '$LTSCALE', 40, lts, 0, 'ENDSEC'),
+    tables: layers => {
+      g(0, 'SECTION', 2, 'TABLES', 0, 'TABLE', 2, 'LTYPE', 70, 4);
+      g(0, 'LTYPE', 2, 'CONTINUOUS', 70, 0, 3, 'Solid line', 72, 65, 73, 0, 40, 0);
+      g(0, 'LTYPE', 2, 'DASHED', 70, 0, 3, 'Dashed __ __', 72, 65, 73, 2, 40, 19.05, 49, 12.7, 74, 0, 49, -6.35, 74, 0);
+      g(0, 'LTYPE', 2, 'HIDDEN', 70, 0, 3, 'Hidden _ _ _', 72, 65, 73, 2, 40, 9.525, 49, 6.35, 74, 0, 49, -3.175, 74, 0);
+      g(0, 'LTYPE', 2, 'CENTER', 70, 0, 3, 'Center ____ _ ____', 72, 65, 73, 4, 40, 50.8, 49, 31.75, 74, 0, 49, -6.35, 74, 0, 49, 6.35, 74, 0, 49, -6.35, 74, 0);
+      g(0, 'ENDTAB', 0, 'TABLE', 2, 'LAYER', 70, layers.length);
+      for (const [n, c, lt] of layers) g(0, 'LAYER', 2, n, 70, 0, 62, c, 6, lt || 'CONTINUOUS');
+      g(0, 'ENDTAB', 0, 'ENDSEC');
+    },
+    dim: (name, ax, ay, bx, by, off, label, th) => {   // writes a dimension block
+      const L = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / L, uy = (by - ay) / L, nx = -uy, ny = ux;
+      const P = (x, y, s, t) => [x + ux * s + nx * t, y + uy * s + ny * t];
+      const sg = Math.sign(off) || 1, gap = th * .6 * sg, ext = th * .6 * sg, as = th * 1.1;
+      g(0, 'BLOCK', 8, '0', 2, name, 70, 1, 10, 0, 20, 0, 30, 0, 3, name);
+      for (const [x, y] of [[ax, ay], [bx, by]]) { const [x1, y1] = P(x, y, 0, gap), [x2, y2] = P(x, y, 0, off + ext); E.line('0', x1, y1, x2, y2, 62, 0); }
+      const [d1x, d1y] = P(ax, ay, 0, off), [d2x, d2y] = P(bx, by, 0, off); E.line('0', d1x, d1y, d2x, d2y, 62, 0);
+      for (const [x, y, dir] of [[ax, ay, 1], [bx, by, -1]]) {
+        const t0 = P(x, y, 0, off), t1 = P(x, y, as * dir, off + as / 3.5), t2 = P(x, y, as * dir, off - as / 3.5);
+        g(0, 'SOLID', 8, '0', 62, 0, 10, t0[0], 20, t0[1], 11, t1[0], 21, t1[1], 12, t2[0], 22, t2[1], 13, t2[0], 23, t2[1]);
+      }
+      const [mx, my] = P((ax + bx) / 2, (ay + by) / 2, 0, off + th * .35 * sg);
+      g(0, 'MTEXT', 8, '0', 62, 0, 10, mx, 20, my, 30, 0, 40, th, 41, 0, 71, sg > 0 ? 8 : 2, 50, Math.atan2(uy, ux) / DEG, 1, label);
+      g(0, 'ENDBLK', 8, '0');
+    },
+  };
+  return E;
+}
+function sampleFloorPlan() {
+  const X = dxfOut(), g = X.g;
+  X.header(4, 10);
+  X.tables([['0', 7], ['WALLS', 7], ['WALL-FILL', 8], ['DOORS', 3], ['WINDOWS', 4], ['FURNITURE', 30], ['FIXTURES', 150], ['DIMENSIONS', 1], ['TEXT', 2],
+    ['FLOOR-HATCH', 9], ['GRID', 5, 'CENTER'], ['ELECTRICAL', 6, 'DASHED'], ['LANDSCAPE', 94], ['NOTES-HIDDEN', -40], ['TITLEBLOCK', 7], ['VIEWPORTS', 8]]);
+  g(0, 'SECTION', 2, 'BLOCKS');
+  g(0, 'BLOCK', 8, '0', 2, 'DOOR900', 70, 0, 10, 0, 20, 0, 30, 0, 3, 'DOOR900'); X.line('0', 0, 0, 0, 900); X.arc('0', 0, 0, 900, 0, 90); g(0, 'ENDBLK', 8, '0');
+  g(0, 'BLOCK', 8, '0', 2, 'CHAIR', 70, 0, 10, 0, 20, 0, 30, 0, 3, 'CHAIR');
+  X.pl('0', [[-225, -225], [225, -225], [225, 225], [-225, 225]], true); X.arc('0', 0, -120, 360, 52, 128); g(0, 'ENDBLK', 8, '0');
+  X.dim('*D1', 0, 0, 12000, 0, -900, '12000', 200);
+  X.dim('*D2', 0, 0, 0, 8000, 900, '8000', 200);
+  X.dim('*D3', 0, 8000, 7000, 8000, 700, '7000', 200);
+  X.dim('*D4', 7000, 8000, 12000, 8000, 700, '5000', 200);
+  g(0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
+  // walls + solid wall fill (two boundary loops, even-odd)
+  X.pl('WALLS', [[0, 0], [12000, 0], [12000, 8000], [0, 8000]], true);
+  X.pl('WALLS', [[200, 200], [11800, 200], [11800, 7800], [200, 7800]], true);
+  g(0, 'HATCH', 100, 'AcDbEntity', 8, 'WALL-FILL', 100, 'AcDbHatch', 10, 0, 20, 0, 30, 0, 210, 0, 220, 0, 230, 1, 2, 'SOLID', 70, 1, 71, 0, 91, 2,
+    92, 3, 72, 0, 73, 1, 93, 4, 10, 0, 20, 0, 10, 12000, 20, 0, 10, 12000, 20, 8000, 10, 0, 20, 8000, 97, 0,
+    92, 2, 72, 0, 73, 1, 93, 4, 10, 200, 20, 200, 10, 11800, 20, 200, 10, 11800, 20, 7800, 10, 200, 20, 7800, 97, 0, 75, 0, 76, 1, 98, 0);
+  X.pl('WALLS', [[6950, 200], [6950, 3000], [7050, 3000], [7050, 200]], false);
+  X.pl('WALLS', [[6950, 7800], [6950, 3900], [7050, 3900], [7050, 7800]], false);
+  X.pl('WALLS', [[7050, 4450], [8000, 4450], [8000, 4550], [7050, 4550]], false);
+  X.pl('WALLS', [[11800, 4450], [8900, 4450], [8900, 4550], [11800, 4550]], false);
+  // doors (one mirrored via extrusion 0,0,-1)
+  g(0, 'INSERT', 8, 'DOORS', 2, 'DOOR900', 10, 7050, 20, 3000, 30, 0);
+  g(0, 'INSERT', 8, 'DOORS', 2, 'DOOR900', 10, 8000, 20, 4550, 30, 0);
+  g(0, 'INSERT', 8, 'DOORS', 2, 'DOOR900', 10, -3000, 20, 200, 30, 0, 210, 0, 220, 0, 230, -1);
+  // windows
+  for (const [x0, y0, x1, y1] of [[4000, 0, 5500, 200], [9000, 7800, 10500, 8000], [11800, 1500, 12000, 3000]]) {
+    X.pl('WINDOWS', [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], true);
+    if (x1 - x0 > y1 - y0) X.line('WINDOWS', x0, (y0 + y1) / 2, x1, (y0 + y1) / 2); else X.line('WINDOWS', (x0 + x1) / 2, y0, (x0 + x1) / 2, y1);
+  }
+  // furniture
+  X.circle('FURNITURE', 3000, 5600, 600);
+  for (let a = 0; a < 360; a += 60) g(0, 'INSERT', 8, 'FURNITURE', 2, 'CHAIR', 10, 3000 + 950 * Math.cos(a * DEG), 20, 5600 + 950 * Math.sin(a * DEG), 30, 0, 50, a + 90);
+  g(0, 'INSERT', 8, 'FURNITURE', 2, 'CHAIR', 10, 8200, 20, 1300, 30, 0, 70, 3, 71, 2, 44, 700, 45, 900);
+  X.pl('FURNITURE', [[1000, 900], [4000, 900, 0], [4000, 1900], [1000, 1900]], true);
+  X.pl('FURNITURE', [[1000, 900], [4000, 900], [4000, 1200], [1000, 1200]], true);
+  X.pl('FURNITURE', [[9300, 5300], [11500, 5300], [11500, 7600], [9300, 7600]], true);
+  X.pl('FURNITURE', [[9500, 7000], [10300, 7000, .4], [10300, 7450], [9500, 7450, .4]], true);
+  X.pl('FURNITURE', [[10500, 7000], [11300, 7000, .4], [11300, 7450], [10500, 7450, .4]], true);
+  // fixtures
+  g(0, 'ELLIPSE', 8, 'FIXTURES', 10, 5600, 20, 7250, 30, 0, 11, 800, 21, 0, 31, 0, 40, .42, 41, 0, 42, TAU);
+  g(0, 'ELLIPSE', 8, 'FIXTURES', 10, 6450, 20, 6600, 30, 0, 11, 0, 21, 260, 31, 0, 40, .7, 41, 0, 42, TAU);
+  X.pl('FIXTURES', [[200, 6700], [2500, 6700], [2500, 7800]], false);
+  X.circle('FIXTURES', 1000, 7300, 220); X.circle('FIXTURES', 1600, 7300, 220);
+  // entry tile hatch: line + arc edges, crosshatch pattern
+  g(0, 'HATCH', 100, 'AcDbEntity', 8, 'FLOOR-HATCH', 100, 'AcDbHatch', 10, 0, 20, 0, 30, 0, 210, 0, 220, 0, 230, 1, 2, 'ANSI37', 70, 0, 71, 0, 91, 1,
+    92, 1, 93, 4, 72, 1, 10, 300, 20, 2400, 11, 2300, 21, 2400, 72, 2, 10, 2300, 20, 3400, 40, 1000, 50, 270, 51, 90, 73, 1,
+    72, 1, 10, 2300, 20, 4400, 11, 300, 21, 4400, 72, 1, 10, 300, 20, 4400, 11, 300, 21, 2400, 97, 0,
+    75, 0, 76, 1, 52, 45, 41, 1, 77, 0, 78, 2, 53, 45, 43, 0, 44, 0, 45, -106.066, 46, 106.066, 79, 0, 53, 135, 43, 0, 44, 0, 45, -106.066, 46, -106.066, 79, 0, 98, 0);
+  // landscape: spline path, truecolor trees, dashed paving
+  g(0, 'SPLINE', 8, 'LANDSCAPE', 70, 8, 71, 3, 72, 10, 73, 6, 74, 0, 40, 0, 40, 0, 40, 0, 40, 0, 40, 1, 40, 2, 40, 3, 40, 3, 40, 3, 40, 3,
+    10, -1500, 20, -2600, 30, 0, 10, 1000, 20, -1200, 30, 0, 10, 3000, 20, -3400, 30, 0, 10, 6000, 20, -1500, 30, 0, 10, 9000, 20, -3200, 30, 0, 10, 12500, 20, -1900, 30, 0);
+  X.circle('LANDSCAPE', -1200, 2200, 700, 420, 0x2e8b57); X.circle('LANDSCAPE', -1300, 5600, 900, 420, 0x2e8b57); X.circle('LANDSCAPE', 13300, 1200, 600, 420, 0x6b8e23);
+  // grid
+  for (const [x, lab] of [[0, '1'], [7000, '2'], [12000, '3']]) { X.line('GRID', x, -1200, x, 9200); X.circle('GRID', x, 9600, 400); X.ctext('GRID', x, 9600, 300, lab); }
+  for (const [y, lab] of [[0, 'A'], [4500, 'B'], [8000, 'C']]) { X.line('GRID', -1200, y, 13200, y); X.circle('GRID', -1600, y, 400); X.ctext('GRID', -1600, y, 300, lab); }
+  // electrical (dashed)
+  for (const [x, y] of [[3500, 3600], [9400, 6300], [9400, 2300]]) { X.circle('ELECTRICAL', x, y, 160, 6, 'CONTINUOUS'); X.line('ELECTRICAL', x - 113, y - 113, x + 113, y + 113, 6, 'CONTINUOUS'); X.line('ELECTRICAL', x - 113, y + 113, x + 113, y - 113, 6, 'CONTINUOUS'); }
+  X.text('ELECTRICAL', 6700, 3150, 180, 'S');
+  X.pl('ELECTRICAL', [[6750, 3300, .35], [3660, 3600]], false); X.pl('ELECTRICAL', [[7100, 3300, -.3], [9240, 2300]], false);
+  // text
+  X.ctext('TEXT', 3500, 3000, 260, 'LIVING / DINING'); X.ctext('TEXT', 3500, 2620, 160, '42.3 m²');
+  X.ctext('TEXT', 9400, 3500, 260, 'OFFICE'); X.ctext('TEXT', 8250, 6900, 260, 'BEDROOM'); X.ctext('TEXT', 1300, 6300, 200, 'KITCHEN'); X.ctext('TEXT', 1300, 3400, 200, 'ENTRY');
+  X.mtext('TEXT', 13600, 7900, 170, 4200, 1, '{\\fArial|b1;GENERAL NOTES}\\P1. All dimensions are in millimetres.\\P2. Verify every dimension on site before construction starts and report discrepancies to the architect.\\P3. External walls 200 typ., partitions 100.\\P4. Door leaves %%c 900 clear unless noted.');
+  X.pl('TEXT', [[14500, 3000], [14800, 3900], [15100, 3000], [14800, 3250]], true); X.ctext('TEXT', 14800, 4250, 300, 'N');
+  X.text('NOTES-HIDDEN', 600, -2400, 220, 'This note sits on a layer that is turned off — switch NOTES-HIDDEN on to see it.');
+  for (const d of ['*D1', '*D2', '*D3', '*D4']) g(0, 'DIMENSION', 8, 'DIMENSIONS', 2, d, 10, 0, 20, 0, 30, 0, 70, 32);
+  // paper space: A3 sheet with title block and a viewport
+  X.pl('TITLEBLOCK', [[0, 0], [420, 0], [420, 297], [0, 297]], true, 67, 1);
+  X.pl('TITLEBLOCK', [[10, 10], [410, 10], [410, 287], [10, 287]], true, 67, 1, 370, 50);
+  X.pl('TITLEBLOCK', [[10, 10], [410, 10], [410, 45], [10, 45]], true, 67, 1);
+  X.line('TITLEBLOCK', 290, 10, 290, 45, 67, 1); X.line('TITLEBLOCK', 290, 27, 410, 27, 67, 1);
+  X.text('TITLEBLOCK', 16, 30, 6, 'SAMPLE FLOOR PLAN', 67, 1); X.text('TITLEBLOCK', 16, 17, 3, 'Single-storey residence · ground floor', 67, 1);
+  X.text('TITLEBLOCK', 295, 33, 3.2, 'SCALE  1:56 @ A3', 67, 1); X.text('TITLEBLOCK', 295, 16, 3.2, 'SHEET  A-101', 67, 1);
+  g(0, 'VIEWPORT', 8, '0', 67, 1, 10, 210, 20, 148.5, 30, 0, 40, 480, 41, 340, 68, 1, 69, 1, 12, 210, 22, 148.5, 45, 340);
+  g(0, 'VIEWPORT', 8, 'VIEWPORTS', 67, 1, 10, 210, 20, 166, 30, 0, 40, 390, 41, 232, 68, 2, 69, 2, 12, 7700, 22, 3300, 45, 13100);
+  g(0, 'ENDSEC', 0, 'EOF');
+  return X.out();
+}
+function sampleBracket() {
+  const X = dxfOut(), g = X.g, B = .41421356;
+  X.header(4, .3);
+  X.tables([['0', 7], ['OUTLINE', 7], ['HIDDEN', 8, 'HIDDEN'], ['CENTER', 1, 'CENTER'], ['SECTION', 8], ['DIMENSIONS', 4], ['NOTES', 2]]);
+  g(0, 'SECTION', 2, 'BLOCKS');
+  X.dim('*D1', 0, 0, 160, 0, -14, '160', 3.5);
+  X.dim('*D2', 160, 0, 160, 100, -14, '100', 3.5);
+  X.dim('*D3', 15, 85, 145, 85, 25, '130', 3.5);
+  X.dim('*D4', 200, 100, 212, 100, 8, '12', 3.5);
+  g(0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
+  X.pl('OUTLINE', [[10, 0], [150, 0, B], [160, 10], [160, 90, B], [150, 100], [10, 100, B], [0, 90], [0, 10, B]], true, 370, 50);
+  for (const [x, y] of [[15, 15], [145, 15], [145, 85], [15, 85]]) {
+    X.circle('OUTLINE', x, y, 6); X.line('CENTER', x - 9, y, x + 9, y); X.line('CENTER', x, y - 9, x, y + 9);
+  }
+  X.circle('OUTLINE', 80, 50, 20, 370, 50); X.circle('HIDDEN', 80, 50, 26);
+  X.line('CENTER', 80, 21, 80, 79); X.line('CENTER', 47, 50, 113, 50);
+  X.line('OUTLINE', 50, 10, 110, 10); X.line('OUTLINE', 50, 20, 110, 20); X.arc('OUTLINE', 110, 15, 5, 270, 90); X.arc('OUTLINE', 50, 15, 5, 90, 270);
+  X.line('CENTER', 42, 15, 118, 15);
+  const lower = [[200, 0], [212, 0], [212, 30], [204, 30], [204, 24], [200, 24]], upper = [[200, 76], [204, 76], [204, 70], [212, 70], [212, 100], [200, 100]];
+  X.pl('OUTLINE', lower, true, 370, 50); X.pl('OUTLINE', upper, true, 370, 50);
+  const loop = pts => { g(92, 3, 72, 0, 73, 1, 93, pts.length); for (const p of pts) g(10, p[0], 20, p[1]); g(97, 0); };
+  g(0, 'HATCH', 100, 'AcDbEntity', 8, 'SECTION', 100, 'AcDbHatch', 10, 0, 20, 0, 30, 0, 210, 0, 220, 0, 230, 1, 2, 'ANSI31', 70, 0, 71, 0, 91, 2);
+  loop(lower); loop(upper);
+  g(75, 0, 76, 1, 52, 0, 41, 1, 77, 0, 78, 1, 53, 45, 43, 0, 44, 0, 45, -2.2450640303, 46, 2.2450640303, 79, 0, 98, 0);
+  X.line('CENTER', 195, 50, 217, 50);
+  X.ctext('NOTES', 206, -9, 3.5, 'SECTION A–A');
+  g(0, 'LEADER', 8, 'NOTES', 71, 1, 76, 3, 10, 94.2, 20, 64.2, 30, 0, 10, 112, 20, 92, 30, 0, 10, 122, 20, 92, 30, 0);
+  X.text('NOTES', 123, 91, 3, '%%c40 THRU, %%c52 C\'BORE 4 DP');
+  g(0, 'LEADER', 8, 'NOTES', 71, 1, 76, 3, 10, 140.8, 20, 19.2, 30, 0, 10, 133, 20, 34, 30, 0, 10, 131, 20, 34, 30, 0);
+  X.text('NOTES', 108, 35.2, 3, '4X %%c12 THRU', 72, 0);
+  X.text('NOTES', 150, 104, 2.5, 'R10 TYP');
+  X.mtext('NOTES', 0, -26, 4, 230, 1, '{\\fArial|b1;BRACKET, MOUNTING}\\PMaterial: 6061-T6 aluminium plate, \\S1/2; in thick stock milled to 12 mm.\\PFinish: clear anodize. Break all sharp edges 0.5 max. Tolerances ±0.2 unless noted.');
+  for (const d of ['*D1', '*D2', '*D3', '*D4']) g(0, 'DIMENSION', 8, 'DIMENSIONS', 2, d, 10, 0, 20, 0, 30, 0, 70, 32);
+  g(0, 'ENDSEC', 0, 'EOF');
+  return X.out();
+}
+
+/* hook for scripted loading/testing */
+window.dxfViewer = { load(name, text) { const f = addDrawing(loadDxfText(text, name)); state.cur = f.id; refresh(); return f; }, state, buildPdf, readPdfOpts };
+refresh();
+</script>
+</body>
+</html>
