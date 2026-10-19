@@ -4,9 +4,15 @@ A free, open-source DXF viewer that runs entirely in your browser. Open several 
 
 It's a single HTML file with no dependencies, no build step, and no server. Your drawings never leave your computer.
 
+**[Open the live viewer →](https://steven-tibbs.github.io/dxf-viewer/)**
+
 ![Model space with layers panel](docs/screenshot-model.jpg)
 
 ## Use it
+
+**Online:** go to **https://steven-tibbs.github.io/dxf-viewer/** and open your files. They're read locally by your browser and never uploaded.
+
+**Offline:**
 
 1. Download [`index.html`](index.html), or clone the repo.
 2. Double-click it to open it in Chrome, Edge, Firefox or Safari.
